@@ -56,11 +56,10 @@ class TestStimfunction(unittest.TestCase):
             self.fail('Unexpected exception thrown')
 
         # We need to have matching length lists for durations and onsets
-        def f2():
+        with self.assertRaises(Exception):
             s = sim.stimfunction(10,
                                  onsets=[1, 2, 3],
                                  durations=[1, 2], accuracy=1)
-        self.assertRaises(Exception, f)
 
 class TestSpecifyDesign(unittest.TestCase):
     """Unit tests for sim.specifydesign"""
