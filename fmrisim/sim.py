@@ -2,13 +2,12 @@
 import numpy as np
 
 def _to_ndarray(arr):
-    if type(arr) is not np.ndarray:
-        if type(arr) is list:
+    if not isinstance(arr, np.ndarray):
+        if isinstance(arr, list):
             arr = np.asarray(arr)
         else:
             arr = np.asarray([arr])
     return arr
-
 
 def stimfunction(total_time=100, onsets=range(0, 99, 20),
                  durations=10, accuracy=1):
