@@ -1,5 +1,6 @@
 """ Sim module: for simulating fMRI data """
 import numpy as np
+from numbers import Number
 
 def _to_ndarray(arr):
     """
@@ -76,17 +77,61 @@ def specifydesign(total_time=100, onsets=range(0, 99, 20),
     Raises:
         Exception
     """
-    stim_timeseries = stimfunction(total_time, onsets, durations, accuracy)
 
-    if conv == 'none':
-        return stim_timeseries
+    # Check to see how if we got a list of onset lists, or just one list
+    if isinstance(onsets, list) and any(isinstance(x, list) for x in onsets):
+        nconds = len(onsets)
+        onsets = [_to_ndarray(x) for x in onsets]
+    else:
+        nconds = 1
+        onsets = [onsets]
 
-    if conv in ['gamma','double-gamma']:
-        x = np.arange(0, total_time, accuracy)
-        hrf = gamma if conv == 'gamma' else double_gamma
-        out = np.convolve(stim_timeseries, hrf(x), mode='full')[0:(len(stim_timeseries))]
-        out /= np.max(out,axis=0)
-        return out
+    print nconds
+
+    # Check to make sure durations make sense with onsets
+    if isinstance(durations, Number):
+        # We only got a single number, so assume it is the duration for everything
+        durations = [[durations] for x in range(nconds)]
+    elif len(durations) == 1:
+        durations = [durations for x in range(nconds)]
+    else:
+        if any(isinstance(x, list) for x in durations):
+            # This is multiple lists, check that each matches or is single item
+            if not len(durations) == nconds:
+                raise Exception("Num of onset lists and duration lists should match")
+        else:
+            # This is a single list, make sure it matches the number of onsets
+            if nconds > 1:
+                raise Exception("Num of onset lists and duration lists should match")
+            if not len(durations) == len(onsets[0]):
+                raise Exception("Num of onset times and duration times should match")
+
+    # Check to make sure effect sizes make sense with onsets
+    if isinstance(effect_sizes, Number):
+        # We only got a single number, so assume it is the duration for everything
+        effect_sizes = [[effect_sizes] for x in range(nconds)]
+    elif len(effect_sizes) == 1:
+        effect_sizes = [effect_sizes for x in range(nconds)]
+    else:
+        if not len(effect_sizes) == len(onsets):
+            raise Exception("Num of onset lists and effect sizes should match")
+
+    design_out = np.zeros((nconds,total_time/accuracy))
+    for cond, (onset, dur) in enumerate(zip(onsets,durations)):
+        stim_timeseries = stimfunction(total_time, onset, dur, accuracy)
+
+        if conv == 'none':
+            design_out[cond,:] = stim_timeseries * effect_sizes[cond]
+
+        if conv in ['gamma','double-gamma']:
+            x = np.arange(0, total_time, accuracy)
+            hrf = gamma if conv == 'gamma' else double_gamma
+            out = np.convolve(stim_timeseries, hrf(x), mode='full')[0:(len(stim_timeseries))]
+            out /= np.max(out,axis=0)
+            out *= effect_sizes[cond]
+            design_out[cond,:] = out
+
+    return design_out
 
 def gamma(x, fwhm=4):
     """
