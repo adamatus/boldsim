@@ -2,6 +2,9 @@
 import numpy as np
 
 def _to_ndarray(arr):
+    """
+    Convert an object or list to an ndarray
+    """
     if not isinstance(arr, np.ndarray):
         if isinstance(arr, list):
             arr = np.asarray(arr)
@@ -61,11 +64,11 @@ def specifydesign(total_time=100, onsets=range(0, 99, 20),
     Args:
         total_time (int): Total time of design (in seconds)
         onsets (list/ndarray) : Onset times of events (in seconds)
-        durations (int/list/ndarray): Duration time/s or events (in seconds)
+        durations (int/list/ndarray): Duration time/s of events (in seconds)
         effect_sizes (int/list/ndarray): Effect sizes for conditions
-        TR (int): Time of sampling
+        TR (int/float): Time of sampling
         accuracy (float): Microtime resolution in seconds
-        conv (string): Convolution method, on of: "none", "gamma"
+        conv (string): Convolution method, on of: "none", "gamma", "double-gamma"
 
     Returns:
         A ndarray with the stimulus timeseries
