@@ -83,6 +83,7 @@ def specifydesign(total_time=100, onsets=range(0, 99, 20),
         x = np.arange(0, total_time, accuracy)
         hrf = gamma if conv == 'gamma' else double_gamma
         out = np.convolve(stim_timeseries, hrf(x), mode='full')[0:(len(stim_timeseries))]
+        out /= np.max(out,axis=0)
         return out
 
 def gamma(x, fwhm=4):

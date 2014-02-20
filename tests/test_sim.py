@@ -98,7 +98,9 @@ class TestSpecifyDesign(unittest.TestCase):
         """Test specifydesign with gamma convolution"""
         d = sim.specifydesign(self.total_time, self.onsets, self.duration,
                               accuracy=self.acc, conv='gamma')
-        g = np.round(sim.gamma(np.arange(30)),decimals=5)
+        g = sim.gamma(np.arange(30))
+        g /= np.max(g)
+        g = np.round(g,decimals=5)
         self.assertTrue(np.all(g == np.round(d[0:30],decimals=5)))
         self.assertTrue(np.all(g == np.round(d[49:79],decimals=5)))
 
@@ -106,7 +108,9 @@ class TestSpecifyDesign(unittest.TestCase):
         """Test specifydesign with double-gamma convolution"""
         d = sim.specifydesign(self.total_time, self.onsets, self.duration,
                               accuracy=self.acc, conv='double-gamma')
-        g = np.round(sim.double_gamma(np.arange(30)),decimals=5)
+        g = sim.double_gamma(np.arange(30))
+        g /= np.max(g)
+        g = np.round(g,decimals=5)
         self.assertTrue(np.all(g == np.round(d[0:30],decimals=5)))
         self.assertTrue(np.all(g == np.round(d[49:79],decimals=5)))
 
