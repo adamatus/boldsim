@@ -61,3 +61,53 @@ class TestStimfunction(unittest.TestCase):
                                  onsets=[1, 2, 3],
                                  durations=[1, 2], accuracy=1)
         self.assertRaises(Exception, f)
+
+class TestSpecifyDesign(unittest.TestCase):
+    """Unit tests for sim.specifydesign"""
+
+    def setUp(self):
+        """Setup defaults for stimfunction tests"""
+        self.total_time = 100
+        self.onsets = [0,49]
+        self.duration = 1
+        self.acc = 1
+
+    def test_output_is_correct_length(self):
+        """Test specifydesign returns correct length output"""
+        d = sim.specifydesign(100, self.onsets, self.duration,
+                              accuracy=1, conv='gamma')
+        self.assertTrue(len(d) == 100)
+
+        d = sim.specifydesign(100, self.onsets, self.duration,
+                              accuracy=.1, conv='gamma')
+        self.assertTrue(len(d) == 100/.1)
+
+    def test_with_no_arguments(self):
+        """Test specifydesign with no args matches stimfunction"""
+        s = sim.stimfunction()
+        d = sim.specifydesign()
+        self.assertTrue(np.all(s == d))
+
+    def test_with_no_conv(self):
+        """Test specifydesign with no convolution matches function"""
+        s = sim.stimfunction()
+        d = sim.specifydesign(conv='none')
+        self.assertTrue(np.all(s == d))
+
+    def test_with_gamma(self):
+        """Test specifydesign with gamma convolution"""
+        d = sim.specifydesign(self.total_time, self.onsets, self.duration,
+                              accuracy=self.acc, conv='gamma')
+        g = np.round(sim.gamma(np.arange(30)),decimals=5)
+        self.assertTrue(np.all(g == np.round(d[0:30],decimals=5)))
+        self.assertTrue(np.all(g == np.round(d[49:79],decimals=5)))
+
+    def test_with_double_gamma(self):
+        """Test specifydesign with double-gamma convolution"""
+        d = sim.specifydesign(self.total_time, self.onsets, self.duration,
+                              accuracy=self.acc, conv='double-gamma')
+        g = np.round(sim.double_gamma(np.arange(30)),decimals=5)
+        self.assertTrue(np.all(g == np.round(d[0:30],decimals=5)))
+        self.assertTrue(np.all(g == np.round(d[49:79],decimals=5)))
+
+

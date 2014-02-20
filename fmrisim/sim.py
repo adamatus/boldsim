@@ -51,3 +51,52 @@ def stimfunction(total_time=100, onsets=range(0, 99, 20),
 
     return output_series
 
+def specifydesign(total_time=100, onsets=range(0, 99, 20),
+                 durations=10, effect_sizes=1, TR=2, accuracy=1,
+                 conv='none'):
+    """
+    Generate a model hemodynamic response for given onsets and durations
+
+    Args:
+        total_time (int): Total time of design (in seconds)
+        onsets (list/ndarray) : Onset times of events (in seconds)
+        durations (int/list/ndarray): Duration time/s or events (in seconds)
+        effect_sizes (int/list/ndarray): Effect sizes for conditions
+        TR (int): Time of sampling
+        accuracy (float): Microtime resolution in seconds
+        conv (string): Convolution method, on of: "none", "gamma"
+
+    Returns:
+        A ndarray with the stimulus timeseries
+
+    Raises:
+        Exception
+    """
+    stim_timeseries = stimfunction(total_time, onsets, durations, accuracy)
+
+    if conv == 'none':
+        return stim_timeseries
+
+    if conv in ['gamma','double-gamma']:
+        x = np.arange(0, total_time, accuracy)
+        hrf = gamma if conv == 'gamma' else double_gamma
+        out = np.convolve(stim_timeseries, hrf(x), mode='full')[0:(len(stim_timeseries))]
+        return out
+
+def gamma(x, fwhm=4):
+    """
+    Generate a gamma-shaped HRF
+    """
+    th = 0.242*fwhm
+
+    return 1/(th*6) * (x/th)**3 * np.exp(-x/th)
+
+def double_gamma(x, a1=6., a2=12., b1=.9, b2=.9, c=0.35):
+    """
+    Generate a double-gamma-shaped HRF
+    """
+    d1 = a1 * b1
+    d2 = a2 * b2
+
+    return (    (x / d1)**a1 * np.exp((d1 - x) / b1)) - \
+           (c * (x / d2)**a2 * np.exp((d2 - x) / b2))
