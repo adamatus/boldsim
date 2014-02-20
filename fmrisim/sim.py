@@ -1,6 +1,15 @@
 """ Sim module: for simulating fMRI data """
 import numpy as np
 
+def _to_ndarray(arr):
+    if type(arr) is not np.ndarray:
+        if type(arr) is list:
+            arr = np.asarray(arr)
+        else:
+            arr = np.asarray([arr])
+    return arr
+
+
 def stimfunction(total_time=100, onsets=range(0, 99, 20),
                  durations=10, accuracy=1):
     """
@@ -22,21 +31,14 @@ def stimfunction(total_time=100, onsets=range(0, 99, 20),
         raise Exception("total_time should be an integer")
 
     # Make sure onsets is an ndarray
-    if type(onsets) is not np.ndarray:
-        if type(onsets) is list:
-            onsets = np.asarray(onsets)
-        else:
-            onsets = np.asarray([onsets])
+    onsets = _to_ndarray(onsets)
 
     # Make sure durations is an ndarray the same length as onsets
-    if type(durations) is not np.ndarray:
-        if type(durations) is list:
-            durations = np.asarray(durations)
-            if len(durations) != len(onsets):
-                raise Exception("durations and onsets need to be same length")
-        else:
-            # Repeat single item for each onset
-            durations = np.asarray([durations]*len(onsets))
+    durations = _to_ndarray(durations)
+    if len(durations) == 1:
+        durations = durations.repeat(len(onsets))
+    if len(durations) != len(onsets):
+        raise Exception("durations and onsets need to be same length")
 
     if np.max(onsets) >= total_time:
         raise Exception("Mismatch between onsets and totaltime")
