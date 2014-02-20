@@ -7,10 +7,21 @@ class TestStimfunction(unittest.TestCase):
     """Unit tests for sim.stimfunction"""
 
     def setUp(self):
+        """Setup defaults for stimfunction tests"""
         self.total_time = 8
         self.onsets = [0,4]
         self.duration = 2
         self.acc = 1
+
+    def test_output_is_correct_length(self):
+        """Test stimfunction returns correct length output"""
+        d = sim.stimfunction(100, self.onsets, self.duration,
+                              accuracy=1)
+        self.assertTrue(len(d) == 100)
+
+        d = sim.stimfunction(100, self.onsets, self.duration,
+                              accuracy=.1)
+        self.assertTrue(len(d) == 100/.1)
 
     def test_with_acc_of_one(self):
         """Test stimfunction with accuracy=1"""
