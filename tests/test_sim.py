@@ -228,3 +228,79 @@ class TestSpecifyDesign(unittest.TestCase):
         self.assertTrue(np.all(g == np.round(d[0,0:30],decimals=5)))
         self.assertTrue(np.all(g == np.round(d[0,50:80],decimals=5)))
         self.assertTrue(np.all(g2 == np.round(d[1,25:55],decimals=5)))
+
+class TestSystemNoise(unittest.TestCase):
+    """Unit tests for sim.systemnoise"""
+
+    def test_default_returns_gaussian_noise(self):
+        """Test systemnoise default arguments"""
+        noise = sim.system_noise()
+        noise_mean = np.mean(noise)
+        noise_sd = np.std(noise)
+        self.assertTrue(-.5 < noise_mean < .5)
+        self.assertTrue(.8 < noise_sd < 1.2)
+
+    def test_bad_dist_throws_exception(self):
+        """Test systemnoise throws exception with bad dist"""
+        with self.assertRaises(Exception):
+            sim.system_noise(noise_dist='butterworth')
+
+    def test_return_correct_length_output(self):
+        """Test systemnoise returns correct length output"""
+        self.assertTrue(len(sim.system_noise(nscan=200,noise_dist='gaussian',sigma=1)[0]) == 200)
+        self.assertTrue(len(sim.system_noise(nscan=113,noise_dist='gaussian',sigma=1)[0]) == 113)
+        self.assertTrue(len(sim.system_noise(nscan=200,noise_dist='rayleigh',sigma=1)[0]) == 200)
+        self.assertTrue(len(sim.system_noise(nscan=113,noise_dist='rayleigh',sigma=1)[0]) == 113)
+        self.assertTrue(len(sim.system_noise(nscan=200,noise_dist='gaussian',sigma=10)[0]) == 200)
+        self.assertTrue(len(sim.system_noise(nscan=113,noise_dist='gaussian',sigma=10)[0]) == 113)
+        self.assertTrue(len(sim.system_noise(nscan=200,noise_dist='rayleigh',sigma=10)[0]) == 200)
+        self.assertTrue(len(sim.system_noise(nscan=113,noise_dist='rayleigh',sigma=10)[0]) == 113)
+
+    def test_return_correct_dim_output(self):
+        """Test systemnoise returns correct dimension output"""
+        self.assertTrue(sim.system_noise(nscan=100).shape == (1,100))
+        self.assertTrue(sim.system_noise(nscan=200).shape == (1,200))
+
+    def test_return_correct_dim_handles_numeric(self):
+        """Test systemnoise returns correct dimension with single numeric input"""
+        self.assertTrue(sim.system_noise(nscan=100,dim=2).shape == (2,100))
+        self.assertTrue(sim.system_noise(nscan=200,dim=3).shape == (3,200))
+
+    def test_return_correct_dim_handles_list(self):
+        """Test systemnoise returns correct dimensions with list input"""
+        self.assertTrue(sim.system_noise(nscan=100,dim=[2]).shape == (2,100))
+        self.assertTrue(sim.system_noise(nscan=200,dim=[2,2]).shape == (2,2,200))
+
+    def test_return_correct_dim_handles_typle(self):
+        """Test systemnoise returns correct dimensions with tuple input"""
+        self.assertTrue(sim.system_noise(nscan=100,dim=(2)).shape == (2,100))
+        self.assertTrue(sim.system_noise(nscan=200,dim=(2,2)).shape == (2,2,200))
+
+    def test_throws_exception_on_bad_dim(self):
+        """Test systemnoise throws error on bad dim parameter"""
+        with self.assertRaises(Exception):
+            sim.system_noise(dim='bad')
+
+    def test_returns_good_gaussian_noise(self):
+        """Test systemnoise returns good Gaussian noise"""
+        for sigma in [1, 10]:
+            noise = sim.system_noise(nscan=1000,noise_dist='gaussian',sigma=sigma)
+            noise_mean = np.mean(noise[0])
+            noise_sd = np.std(noise[0])
+            self.assertTrue((-.1*sigma) < noise_mean < (.10*sigma))
+            self.assertTrue((sigma*.9) < noise_sd < (sigma*1.1))
+
+    def test_returns_good_rayleigh_noise(self):
+        """Test systemnoise returns good Rayleigh noise"""
+        for sigma in [1, 10]:
+            noise = sim.system_noise(nscan=1000,noise_dist='rayleigh',sigma=sigma)
+
+            correct_mean = sigma * np.sqrt(np.pi/2)
+            correct_var = (4-np.pi)/2 * sigma**2
+
+            noise_mean = np.mean(noise[0])
+            noise_var = np.var(noise[0])
+
+            self.assertTrue((correct_mean*.9) < noise_mean < (correct_mean*1.1))
+            self.assertTrue((correct_var*.9) < noise_var < (correct_var*1.1))
+

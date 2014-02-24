@@ -1,6 +1,7 @@
 """ Sim module: for simulating fMRI data """
 import numpy as np
 from numbers import Number
+from scipy.stats import rayleigh,norm
 
 def _to_ndarray(arr):
     """
@@ -149,3 +150,40 @@ def double_gamma(x, a1=6., a2=12., b1=.9, b2=.9, c=0.35):
 
     return (    (x / d1)**a1 * np.exp((d1 - x) / b1)) - \
            (c * (x / d2)**a2 * np.exp((d2 - x) / b2))
+
+def system_noise(nscan=200, noise_dist='gaussian', sigma=1, dim=None):
+    """
+    Generate system noise
+
+    Args:
+        nscan (int): Total time of design (in scans)
+        noise_dist (string): Noise distribution, one of: "gaussian", "rayleigh"
+        sigma (float): Sigma of noise distribution
+        dim (list): XYZ Dimensions of output
+
+    Returns:
+        A ndarray [dim, nscan] with the noise timeseries
+
+    Raises:
+        Exception
+    """
+    # Handle the dim parameter
+    if dim is None:
+        mydim = [1]
+    elif isinstance(dim,Number):
+        mydim = [dim]
+    elif isinstance(dim,tuple):
+        mydim = list(dim)
+    elif isinstance(dim,list):
+        mydim = dim[:]
+    else:
+        raise Exception('Invalid dimension provided to system_noise: {}'.format(dim))
+
+    mydim.append(nscan)
+
+    if noise_dist == 'gaussian':
+        return norm.rvs(scale=sigma, size=mydim)
+    elif noise_dist == 'rayleigh':
+        return rayleigh.rvs(scale=sigma, size=mydim)
+    else:
+        raise Exception('Unknown noise distribution provided: {}'.format(noise_dist))
