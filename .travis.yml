@@ -8,6 +8,6 @@ before_install:
 install:
     - pip install coveralls
 script:
-    nosetests --with-coverage --cover-package=boldsim
+    coverage run --source=boldsim tests/test_sim.py
 after_success:
     coveralls
