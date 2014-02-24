@@ -76,27 +76,9 @@ def stimfunction(total_time=100, onsets=range(0, 99, 20),
 
     return output_series
 
-def specifydesign(total_time=100, onsets=range(0, 99, 20),
-                 durations=10, effect_sizes=1, TR=2, accuracy=1,
-                 conv='none'):
+def _verify_design_params(onsets, durations, effect_sizes):
     """
-    Generate a model hemodynamic response for given onsets and durations
-
-    Args:
-        total_time (int): Total time of design (in seconds)
-        onsets (list/ndarray) : Onset times of events (in seconds)
-        durations (int/list/ndarray): Duration time/s of events (in seconds)
-        effect_sizes (int/list/ndarray): Effect sizes for conditions
-        TR (int/float): Time of sampling
-        accuracy (float): Microtime resolution in seconds
-        conv (string): Convolution method, one of: "none", "gamma",
-                       "double-gamma"
-
-    Returns:
-        A ndarray with the stimulus timeseries
-
-    Raises:
-        Exception
+    Make sure the onsets, durations, and effect_sizes are sane
     """
 
     # Check to see how if we got a list of onset lists, or just one list
@@ -136,7 +118,36 @@ def specifydesign(total_time=100, onsets=range(0, 99, 20),
         if not len(effect_sizes) == len(onsets):
             raise Exception("Num of onset lists and effect sizes should match")
 
-    design_out = np.zeros((nconds, total_time/accuracy))
+    return (onsets, durations, effect_sizes)
+
+def specifydesign(total_time=100, onsets=range(0, 99, 20),
+                 durations=10, effect_sizes=1, TR=2, accuracy=1,
+                 conv='none'):
+    """
+    Generate a model hemodynamic response for given onsets and durations
+
+    Args:
+        total_time (int): Total time of design (in seconds)
+        onsets (list/ndarray) : Onset times of events (in seconds)
+        durations (int/list/ndarray): Duration time/s of events (in seconds)
+        effect_sizes (int/list/ndarray): Effect sizes for conditions
+        TR (int/float): Time of sampling
+        accuracy (float): Microtime resolution in seconds
+        conv (string): Convolution method, one of: "none", "gamma",
+                       "double-gamma"
+
+    Returns:
+        A ndarray with the stimulus timeseries
+
+    Raises:
+        Exception
+    """
+
+    onsets, durations, effect_sizes = _verify_design_params(onsets,
+                                                            durations,
+                                                            effect_sizes)
+
+    design_out = np.zeros((len(onsets), total_time/accuracy))
     for cond, (onset, dur) in enumerate(zip(onsets, durations)):
         stim_timeseries = stimfunction(total_time, onset, dur, accuracy)
 
