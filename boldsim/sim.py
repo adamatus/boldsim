@@ -70,7 +70,7 @@ def specifydesign(total_time=100, onsets=range(0, 99, 20),
         effect_sizes (int/list/ndarray): Effect sizes for conditions
         TR (int/float): Time of sampling
         accuracy (float): Microtime resolution in seconds
-        conv (string): Convolution method, on of: "none", "gamma", "double-gamma"
+        conv (string): Convolution method, one of: "none", "gamma", "double-gamma"
 
     Returns:
         A ndarray with the stimulus timeseries
