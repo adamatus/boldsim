@@ -6,5 +6,8 @@ virtualenv:
 before_install:
     - sudo apt-get install python-numpy python-scipy
 install:
-    - python --version
-script: nosetests
+    - pip install coveralls
+script:
+    nosetests --with-coverage --cover-package=boldsim
+after_success:
+    coveralls
