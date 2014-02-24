@@ -50,10 +50,7 @@ class TestStimfunction(unittest.TestCase):
         self.assertRaises(Exception, f, 12)
 
         # We shouldn't raise an error if onset is < total_time
-        try:
-            f(2)
-        except Exception as e:
-            self.fail('Unexpected exception thrown: ' + e.message)
+        f(2)
 
         # We need to have matching length lists for durations and onsets
         with self.assertRaises(Exception):
@@ -73,45 +70,27 @@ class TestSpecifyDesign(unittest.TestCase):
 
     def test_non_matching_onsets_and_single_dur_is_ok(self):
         """Test specifydesign doesn't throw exception with non-matched onsets + single dur"""
-        try:
-            d = sim.specifydesign(onsets=[1, 2, 3, 4], durations=2)
-        except Exception as e:
-            self.fail('Unexpected exception thrown: ' + e.message)
+        d = sim.specifydesign(onsets=[1, 2, 3, 4], durations=2)
 
     def test_non_matching_onsets_and_single_effect_size_is_ok(self):
         """Test specifydesign doesn't throw exception with non-matched onsets + single effect size"""
-        try:
-            d = sim.specifydesign(onsets=[1, 2, 3, 4], effect_sizes=2)
-        except Exception as e:
-            self.fail('Unexpected exception thrown: ' + e.message)
+        d = sim.specifydesign(onsets=[1, 2, 3, 4], effect_sizes=2)
 
     def test_non_matching_onsets_and_single_dur_in_list_is_ok(self):
         """Test specifydesign doesn't throw exception with non-matched onsets + single dur in list"""
-        try:
-            d = sim.specifydesign(onsets=[1, 2, 3, 4], durations=[2])
-        except Exception as e:
-            self.fail('Unexpected exception thrown: ' + e.message)
+        d = sim.specifydesign(onsets=[1, 2, 3, 4], durations=[2])
 
     def test_non_matching_onsets_and_single_effect_size_in_list_is_ok(self):
         """Test specifydesign doesn't throw exception with non-matched onsets + single effect size in list"""
-        try:
-            d = sim.specifydesign(onsets=[1, 2, 3, 4], effect_sizes=[2])
-        except Exception as e:
-            self.fail('Unexpected exception thrown: ' + e.message)
+        d = sim.specifydesign(onsets=[1, 2, 3, 4], effect_sizes=[2])
 
     def test_matching_onsets_and_dur_list_is_ok(self):
         """Test specifydesign doesn't throw exception with matching onsets + dur lists"""
-        try:
-            d = sim.specifydesign(onsets=[1, 2, 3, 4], durations=[2, 3, 2, 3])
-        except Exception as e:
-            self.fail('Unexpected exception thrown: ' + e.message)
+        d = sim.specifydesign(onsets=[1, 2, 3, 4], durations=[2, 3, 2, 3])
 
     def test_matching_onsets_and_effect_size_list_is_ok(self):
         """Test specifydesign doesn't throw exception with matching onsets + effect_size lists"""
-        try:
-            d = sim.specifydesign(onsets=[[1, 2],[3, 4]], effect_sizes=[2, 3])
-        except Exception as e:
-            self.fail('Unexpected exception thrown: ' + e.message)
+        d = sim.specifydesign(onsets=[[1, 2],[3, 4]], effect_sizes=[2, 3])
 
     def test_non_matching_onsets_and_durs_throws_exception(self):
         """Test specifydesign throws exception with non-matched onsets/dur lists"""
@@ -130,17 +109,11 @@ class TestSpecifyDesign(unittest.TestCase):
 
     def test_nested_matching_onsets_and_durs_dont_throw_exception(self):
         """Test specifydesign doesn't throw exception with nested matching onsets/dur lists"""
-        try:
-            d = sim.specifydesign(onsets=[[1, 2],[1,2,3]], durations=[[1, 2],[1,2,3]])
-        except Exception as e:
-            self.fail('Unexpected exception thrown: ' + e.message)
+        d = sim.specifydesign(onsets=[[1, 2],[1,2,3]], durations=[[1, 2],[1,2,3]])
 
     def test_nested_matching_onsets_and_single_durs_dont_throw_exception(self):
         """Test specifydesign doesn't throw exception with nested matching onsets + single dur in lists"""
-        try:
-            d = sim.specifydesign(onsets=[[1, 2],[1,2,3]], durations=[[1],[1,2,3]])
-        except Exception as e:
-            self.fail('Unexpected exception thrown: ' + e.message)
+        d = sim.specifydesign(onsets=[[1, 2],[1,2,3]], durations=[[1],[1,2,3]])
 
     def test_output_is_correct_length(self):
         """Test specifydesign returns correct length output"""
