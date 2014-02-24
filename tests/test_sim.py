@@ -13,6 +13,15 @@ class TestStimfunction(unittest.TestCase):
         self.duration = 2
         self.acc = 1
 
+    def test_total_time_is_int(self):
+        d = sim.stimfunction(100, self.onsets, self.duration,
+                              accuracy=1)
+
+        with self.assertRaises(Exception):
+            d = sim.stimfunction(100.5, self.onsets, self.duration,
+                                 accuracy=1)
+
+
     def test_output_is_correct_length(self):
         """Test stimfunction returns correct length output"""
         d = sim.stimfunction(100, self.onsets, self.duration,
@@ -106,6 +115,16 @@ class TestSpecifyDesign(unittest.TestCase):
         """Test specifydesign throws exception with nested non-matched onsets/dur lists"""
         with self.assertRaises(Exception):
             d = sim.specifydesign(onsets=[[1, 2],[1,2,3]], durations=[[1, 2],[1,2]])
+
+    def test_nested_non_matching_onsets_and_durs_len_throws_exception(self):
+        """Test specifydesign throws exception with nested non-matched onsets/dur len lists"""
+        with self.assertRaises(Exception):
+            d = sim.specifydesign(onsets=[[1, 2],[1, 2, 3],[1,2,3]], durations=[[1, 2],[1,2]])
+
+    def test_nested_non_matching_onsets_and_durs_nonnest_throws_exception(self):
+        """Test specifydesign throws exception with nested non-matched onsets/single dur lists"""
+        with self.assertRaises(Exception):
+            d = sim.specifydesign(onsets=[[1, 2],[1, 2, 3]], durations=[1, 2])
 
     def test_nested_matching_onsets_and_durs_dont_throw_exception(self):
         """Test specifydesign doesn't throw exception with nested matching onsets/dur lists"""

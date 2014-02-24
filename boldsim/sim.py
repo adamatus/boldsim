@@ -86,14 +86,13 @@ def specifydesign(total_time=100, onsets=range(0, 99, 20),
         nconds = 1
         onsets = [onsets]
 
-    print nconds
-
     # Check to make sure durations make sense with onsets
     if isinstance(durations, Number):
         # We only got a single number, so assume it is the duration for everything
         durations = [[durations] for x in range(nconds)]
     elif len(durations) == 1:
         durations = [durations for x in range(nconds)]
+        # Currently relying on stimfunction to make sure durations matches
     else:
         if any(isinstance(x, list) for x in durations):
             # This is multiple lists, check that each matches or is single item
