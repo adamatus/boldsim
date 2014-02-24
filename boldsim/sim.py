@@ -1,7 +1,7 @@
 """ Sim module: for simulating fMRI data """
 import numpy as np
 from numbers import Number
-from scipy.stats import rayleigh,norm
+from scipy.stats import rayleigh, norm
 
 def _to_ndarray(arr):
     """
@@ -23,14 +23,14 @@ def _handle_dim(dim):
     """
     if dim is None:
         mydim = [1]
-    elif isinstance(dim,Number):
+    elif isinstance(dim, Number):
         mydim = [dim]
-    elif isinstance(dim,tuple):
+    elif isinstance(dim, tuple):
         mydim = list(dim)
-    elif isinstance(dim,list):
+    elif isinstance(dim, list):
         mydim = dim[:]
     else:
-        raise Exception('Invalid dimension provided to lowfreqdrift: {}'.format(dim))
+        raise Exception('Invalid dim provided to lowfreqdrift: {}'.format(dim))
     return mydim
 
 def stimfunction(total_time=100, onsets=range(0, 99, 20),
@@ -89,7 +89,8 @@ def specifydesign(total_time=100, onsets=range(0, 99, 20),
         effect_sizes (int/list/ndarray): Effect sizes for conditions
         TR (int/float): Time of sampling
         accuracy (float): Microtime resolution in seconds
-        conv (string): Convolution method, one of: "none", "gamma", "double-gamma"
+        conv (string): Convolution method, one of: "none", "gamma",
+                       "double-gamma"
 
     Returns:
         A ndarray with the stimulus timeseries
@@ -108,7 +109,7 @@ def specifydesign(total_time=100, onsets=range(0, 99, 20),
 
     # Check to make sure durations make sense with onsets
     if isinstance(durations, Number):
-        # We only got a single number, so assume it is the duration for everything
+        # We only got a single number, so assume it is the dur for everything
         durations = [[durations] for x in range(nconds)]
     elif len(durations) == 1:
         durations = [durations for x in range(nconds)]
@@ -117,17 +118,17 @@ def specifydesign(total_time=100, onsets=range(0, 99, 20),
         if any(isinstance(x, list) for x in durations):
             # This is multiple lists, check that each matches or is single item
             if not len(durations) == nconds:
-                raise Exception("Num of onset lists and duration lists should match")
+                raise Exception("Num of onset lists and dur lists should match")
         else:
             # This is a single list, make sure it matches the number of onsets
             if nconds > 1:
-                raise Exception("Num of onset lists and duration lists should match")
+                raise Exception("Num of onset lists and dur lists should match")
             if not len(durations) == len(onsets[0]):
-                raise Exception("Num of onset times and duration times should match")
+                raise Exception("Num of onset times and dur times should match")
 
     # Check to make sure effect sizes make sense with onsets
     if isinstance(effect_sizes, Number):
-        # We only got a single number, so assume it is the duration for everything
+        # We only got a single number, so assume it is the dur for everything
         effect_sizes = [[effect_sizes] for x in range(nconds)]
     elif len(effect_sizes) == 1:
         effect_sizes = [effect_sizes for x in range(nconds)]
@@ -135,20 +136,21 @@ def specifydesign(total_time=100, onsets=range(0, 99, 20),
         if not len(effect_sizes) == len(onsets):
             raise Exception("Num of onset lists and effect sizes should match")
 
-    design_out = np.zeros((nconds,total_time/accuracy))
-    for cond, (onset, dur) in enumerate(zip(onsets,durations)):
+    design_out = np.zeros((nconds, total_time/accuracy))
+    for cond, (onset, dur) in enumerate(zip(onsets, durations)):
         stim_timeseries = stimfunction(total_time, onset, dur, accuracy)
 
         if conv == 'none':
-            design_out[cond,:] = stim_timeseries * effect_sizes[cond]
+            design_out[cond, :] = stim_timeseries * effect_sizes[cond]
 
-        if conv in ['gamma','double-gamma']:
+        if conv in ['gamma', 'double-gamma']:
             x = np.arange(0, total_time, accuracy)
             hrf = gamma if conv == 'gamma' else double_gamma
-            out = np.convolve(stim_timeseries, hrf(x), mode='full')[0:(len(stim_timeseries))]
-            out /= np.max(out,axis=0)
+            out = np.convolve(stim_timeseries, hrf(x),
+                              mode='full')[0:(len(stim_timeseries))]
+            out /= np.max(out, axis=0)
             out *= effect_sizes[cond]
-            design_out[cond,:] = out
+            design_out[cond, :] = out
 
     return design_out
 
@@ -167,8 +169,10 @@ def double_gamma(x, a1=6., a2=12., b1=.9, b2=.9, c=0.35):
     d1 = a1 * b1
     d2 = a2 * b2
 
+    #pylint: disable=bad-whitespace
     return (    (x / d1)**a1 * np.exp((d1 - x) / b1)) - \
            (c * (x / d2)**a2 * np.exp((d2 - x) / b2))
+    #pylint: enable=bad-whitespace
 
 def system_noise(nscan=200, noise_dist='gaussian', sigma=1, dim=None):
     """
@@ -195,7 +199,8 @@ def system_noise(nscan=200, noise_dist='gaussian', sigma=1, dim=None):
     elif noise_dist == 'rayleigh':
         return rayleigh.rvs(scale=sigma, size=mydim)
     else:
-        raise Exception('Unknown noise distribution provided: {}'.format(noise_dist))
+        raise Exception('Unknown noise distribution provided: {}'.format(
+                                                                  noise_dist))
 
 def lowfreqdrift(nscan=200, freq=128.0, TR=2, dim=None):
     """
@@ -218,18 +223,24 @@ def lowfreqdrift(nscan=200, freq=128.0, TR=2, dim=None):
 
     num_basis_funcs = np.floor(2 * (nscan * TR)/freq + 1)
     if num_basis_funcs < 3:
-        raise Exception('Number of basis functions is too low. Longer scanner time or lower freq needed')
+        raise Exception('Number of basis functions is too low. \
+                         Longer scanner time or lower freq needed')
 
-    def spm_drift(N, K):
-        n = np.arange(N)
-        C = np.zeros((N,K))
+    def spm_drift(nscans, nbasis):
+        """
+        Generate a basis set of cosine functions for low frequency
+        drift noise generation
+        """
+        timepoint = np.arange(nscans)
+        cosine_set = np.zeros((nscans, nbasis))
 
-        C[:,0] = 1.0/np.sqrt(200)
-        for k in np.arange(1,num_basis_funcs):
-            a = np.sqrt(2.0/N)*10*np.cos(np.pi * (2.0*n+1) * (k)/(2.0*N))
-            C[:,k] = a
+        cosine_set[:, 0] = 1.0/np.sqrt(200)
+        for basis in np.arange(1, num_basis_funcs):
+            cosine_set[:, basis] = np.sqrt(2.0/nscans) * 10 * \
+                                   np.cos(np.pi * (2.0 * timepoint+1) * \
+                                          (basis)/(2.0*nscans))
 
-        return C
+        return cosine_set
 
     drift_base = spm_drift(nscan, num_basis_funcs)
     drift_image = np.ones(mydim)
