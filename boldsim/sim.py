@@ -14,6 +14,25 @@ def _to_ndarray(arr):
             arr = np.asarray([arr])
     return arr
 
+def _handle_dim(dim):
+    """
+    Handle any of a variety of differnent ways to specify spatial dimensions
+    (i.e., None (default), single number, tuple, list)
+
+    Return a copy of the list so we can modify as necessary
+    """
+    if dim is None:
+        mydim = [1]
+    elif isinstance(dim,Number):
+        mydim = [dim]
+    elif isinstance(dim,tuple):
+        mydim = list(dim)
+    elif isinstance(dim,list):
+        mydim = dim[:]
+    else:
+        raise Exception('Invalid dimension provided to lowfreqdrift: {}'.format(dim))
+    return mydim
+
 def stimfunction(total_time=100, onsets=range(0, 99, 20),
                  durations=10, accuracy=1):
     """
@@ -168,17 +187,7 @@ def system_noise(nscan=200, noise_dist='gaussian', sigma=1, dim=None):
         Exception
     """
     # Handle the dim parameter
-    if dim is None:
-        mydim = [1]
-    elif isinstance(dim,Number):
-        mydim = [dim]
-    elif isinstance(dim,tuple):
-        mydim = list(dim)
-    elif isinstance(dim,list):
-        mydim = dim[:]
-    else:
-        raise Exception('Invalid dimension provided to system_noise: {}'.format(dim))
-
+    mydim = _handle_dim(dim)
     mydim.append(nscan)
 
     if noise_dist == 'gaussian':
@@ -205,16 +214,7 @@ def lowfreqdrift(nscan=200, freq=128.0, TR=2, dim=None):
         Exception
     """
     # Handle the dim parameter
-    if dim is None:
-        mydim = [1]
-    elif isinstance(dim,Number):
-        mydim = [dim]
-    elif isinstance(dim,tuple):
-        mydim = list(dim)
-    elif isinstance(dim,list):
-        mydim = dim[:]
-    else:
-        raise Exception('Invalid dimension provided to lowfreqdrift: {}'.format(dim))
+    mydim = _handle_dim(dim)
 
     num_basis_funcs = np.floor(2 * (nscan * TR)/freq + 1)
     if num_basis_funcs < 3:
