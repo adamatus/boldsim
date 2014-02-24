@@ -1,7 +1,7 @@
 import unittest
 import numpy as np
 
-from fmrisim import sim
+from boldsim import sim
 
 class TestStimfunction(unittest.TestCase):
     """Unit tests for sim.stimfunction"""
