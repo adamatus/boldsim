@@ -304,3 +304,46 @@ class TestSystemNoise(unittest.TestCase):
             self.assertTrue((correct_mean*.9) < noise_mean < (correct_mean*1.1))
             self.assertTrue((correct_var*.9) < noise_var < (correct_var*1.1))
 
+class TestLowFreqNoise(unittest.TestCase):
+    """Unit tests for sim.lowfreqnoise"""
+
+    def test_default_returns_expected(self):
+        """Test lowfreqnoise default arguments"""
+        noise = sim.lowfreqdrift()
+        self.assertTrue(noise.shape == (1,200))
+
+    def test_too_short_and_too_fast_throws_exception(self):
+        """Test lowfreqnoise with bad lenght/freq combos"""
+        with self.assertRaises(Exception):
+            noise = sim.lowfreqdrift(nscan=10)
+        with self.assertRaises(Exception):
+            noise = sim.lowfreqdrift(nscan=200, freq=1000)
+
+    def test_dim_as_number(self):
+        """Test lowfreqnoise handles numeric dim"""
+        noise = sim.lowfreqdrift(nscan=100,dim=10)
+        self.assertTrue(noise.shape == (10,100))
+
+    def test_dim_as_tuple(self):
+        """Test lowfreqnoise handles tuple dim"""
+        noise = sim.lowfreqdrift(nscan=100,dim=(64, 64))
+        self.assertTrue(noise.shape == (64,64,100))
+
+    def test_dim_as_list(self):
+        """Test lowfreqnoise handles list dim"""
+        noise = sim.lowfreqdrift(nscan=100,dim=[32, 32])
+        self.assertTrue(noise.shape == (32,32,100))
+
+    def test_bad_dim_throws_exception(self):
+        """Test lowfreqnoise with bad dim throws exception"""
+        with self.assertRaises(Exception):
+            noise = sim.lowfreqdrift(dim='bad')
+
+    def test_reshape_is_good(self):
+        """Test lowfrewnoise reshape returns expected timeseries"""
+        noise1 = sim.lowfreqdrift()
+        noise2 = sim.lowfreqdrift(dim=(2,2))
+        self.assertTrue(np.all(noise1[0,:] == noise2[0,0,:]))
+        self.assertTrue(np.all(noise1[0,:] == noise2[1,1,:]))
+
+

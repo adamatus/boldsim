@@ -187,3 +187,54 @@ def system_noise(nscan=200, noise_dist='gaussian', sigma=1, dim=None):
         return rayleigh.rvs(scale=sigma, size=mydim)
     else:
         raise Exception('Unknown noise distribution provided: {}'.format(noise_dist))
+
+def lowfreqdrift(nscan=200, freq=128.0, TR=2, dim=None):
+    """
+    Generate low frequency drift noise
+
+    Args:
+        nscan (int): Total time of design (in scans)
+        freq (float): Low frequency drift
+        TR (int): Repetition time in seconds
+        dim (list/tuple): Spatial dimensions of output, default = (1,)
+
+    Returns:
+        A ndarray [spatial dim, nscan] with the noise timeseries
+
+    Raises:
+        Exception
+    """
+    # Handle the dim parameter
+    if dim is None:
+        mydim = [1]
+    elif isinstance(dim,Number):
+        mydim = [dim]
+    elif isinstance(dim,tuple):
+        mydim = list(dim)
+    elif isinstance(dim,list):
+        mydim = dim[:]
+    else:
+        raise Exception('Invalid dimension provided to lowfreqdrift: {}'.format(dim))
+
+    num_basis_funcs = np.floor(2 * (nscan * TR)/freq + 1)
+    if num_basis_funcs < 3:
+        raise Exception('Number of basis functions is too low. Longer scanner time or lower freq needed')
+
+    def spm_drift(N, K):
+        n = np.arange(N)
+        C = np.zeros((N,K))
+
+        C[:,0] = 1.0/np.sqrt(200)
+        for k in np.arange(1,num_basis_funcs):
+            a = np.sqrt(2.0/N)*10*np.cos(np.pi * (2.0*n+1) * (k)/(2.0*N))
+            C[:,k] = a
+
+        return C
+
+    drift_base = spm_drift(nscan, num_basis_funcs)
+    drift_image = np.ones(mydim)
+    drift_out = np.outer(drift_image, np.sum(drift_base, axis=1))
+
+    mydim.append(nscan)
+
+    return drift_out.reshape(mydim)
