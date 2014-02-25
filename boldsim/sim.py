@@ -346,7 +346,7 @@ def tasknoise(design, sigma=1, noise_dist='gaussian', dim=None):
 
 def temporalnoise(nscan=200, sigma=1, ar_coef=0.2, dim=None):
     """
-    Generate physiological (cardiac and repiratory) noise
+    Generate temporally correlated noise
 
     Args:
         nscan (int): Total time of design (in scans)
