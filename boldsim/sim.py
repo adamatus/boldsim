@@ -1,5 +1,6 @@
 """ Sim module: for simulating fMRI data """
 import numpy as np
+from warnings import warn
 from numbers import Number
 from scipy.stats import rayleigh, norm
 
@@ -30,7 +31,7 @@ def _handle_dim(dim):
     elif isinstance(dim, list):
         mydim = dim[:]
     else:
-        raise Exception('Invalid dim provided to lowfreqdrift: {}'.format(dim))
+        raise Exception('Invalid dim provided: {}'.format(dim))
     return mydim
 
 def stimfunction(total_time=100, onsets=range(0, 99, 20),
@@ -39,7 +40,7 @@ def stimfunction(total_time=100, onsets=range(0, 99, 20),
     Generate a timeseries for a given set of onsets and durations
 
     Args:
-        total_time (int): Total time of design (in seconds)
+        total_time (int/float): Total time of design (in seconds)
         onsets (list/ndarray) : Onset times of events (in seconds)
         durations (int/list/ndarray): Duration time/s or events (in seconds)
         accuracy (float): Microtime resolution in seconds
@@ -50,8 +51,10 @@ def stimfunction(total_time=100, onsets=range(0, 99, 20),
     Raises:
         Exception
     """
-    if type(total_time) is not int:
-        raise Exception("total_time should be an integer")
+    if not isinstance(total_time, Number):
+        raise Exception("Argument total_time should be a number")
+
+    accuracy = float(accuracy)
 
     # Make sure onsets is an ndarray
     onsets = _to_ndarray(onsets)
@@ -61,15 +64,23 @@ def stimfunction(total_time=100, onsets=range(0, 99, 20),
     if len(durations) == 1:
         durations = durations.repeat(len(onsets))
     if len(durations) != len(onsets):
-        raise Exception("durations and onsets need to be same length")
+        raise Exception("Stim durations and onsets lists " +
+                        "need to be same length")
 
-    if np.max(onsets) >= total_time:
-        raise Exception("Mismatch between onsets and totaltime")
+    if np.max(onsets+durations) >= total_time:
+        warn('Onsets/durations go past total_time. ' + 
+             'Some events will be truncated/missing')
 
     resampled_onsets = onsets/accuracy
     resampled_durs = durations/accuracy
 
-    output_series = np.zeros(total_time/accuracy)
+    output_len = total_time/accuracy
+    if not output_len.is_integer():
+        warn('total_time is not evenly divisibly by accuracy, ' +
+             'output will be slightly truncated and may not ' +
+             'exactly match total_time')
+
+    output_series = np.zeros(int(output_len))
 
     for onset, dur in zip(resampled_onsets, resampled_durs):
         output_series[onset:(onset+dur)] = 1

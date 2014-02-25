@@ -1,4 +1,5 @@
 import unittest
+import warnings
 import numpy as np
 
 from boldsim import sim
@@ -13,14 +14,12 @@ class TestStimfunction(unittest.TestCase):
         self.duration = 2
         self.acc = 1
 
-    def test_total_time_is_int(self):
-        d = sim.stimfunction(100, self.onsets, self.duration,
-                              accuracy=1)
-
+    def test_total_time_is_number(self):
+        """Test stimfunction only takes number for total_time"""
+        d = sim.stimfunction(total_time=100)
+        d = sim.stimfunction(total_time=100.5, accuracy=0.5)
         with self.assertRaises(Exception):
-            d = sim.stimfunction(100.5, self.onsets, self.duration,
-                                 accuracy=1)
-
+            d = sim.stimfunction(total_time=[100.5])
 
     def test_output_is_correct_length(self):
         """Test stimfunction returns correct length output"""
@@ -52,20 +51,35 @@ class TestStimfunction(unittest.TestCase):
         self.assertTrue(np.all(s == [1, 0, 1, 0]))
 
     def test_onset_exceptions(self):
-        """Test stimfunction onsets exception handling"""
-        def f(x):
-            s = sim.stimfunction(10, x,
-                                 self.duration, 1)
-        self.assertRaises(Exception, f, 12)
-
-        # We shouldn't raise an error if onset is < total_time
-        f(2)
-
+        """Test stimfunction throws exception with non-matching onsets and durs"""
         # We need to have matching length lists for durations and onsets
+        s = sim.stimfunction(10,
+                             onsets=[1, 2, 3],
+                             durations=[1, 2, 1], accuracy=1)
         with self.assertRaises(Exception):
             s = sim.stimfunction(10,
                                  onsets=[1, 2, 3],
                                  durations=[1, 2], accuracy=1)
+
+    def test_truncation_warning(self):
+        """Test stimfunction warns user if total_time is not divisible by accuracy"""
+        with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter("always")
+            d = sim.stimfunction(total_time=100.5, accuracy=1.0)
+            d = sim.stimfunction(total_time=100.5, accuracy=0.5)
+            self.assertTrue(len(w) == 1)
+
+    def test_durations_past_total_time_warning(self):
+        """Test stimfunction warns user if onsets/durations go past total_time"""
+        with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter("always")
+            d = sim.stimfunction(total_time=10, onsets=[8,15], durations=1,
+                                 accuracy=1.0) # Warn
+            d = sim.stimfunction(total_time=10, onsets=[9], durations=2,
+                                 accuracy=1.0) # Warn
+            d = sim.stimfunction(total_time=10, onsets=[8], durations=1,
+                                 accuracy=1.0) # Don't warn
+            self.assertTrue(len(w) == 2)
 
 class TestSpecifyDesign(unittest.TestCase):
     """Unit tests for sim.specifydesign"""
