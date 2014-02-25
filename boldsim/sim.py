@@ -157,7 +157,14 @@ def specifydesign(total_time=100, onsets=range(0, 99, 20),
     if not isinstance(total_time, Number):
         raise Exception("Argument total_time should be a number")
 
+    TR = float(TR)
     accuracy = float(accuracy)
+
+    output_len = total_time/TR
+    if not output_len.is_integer():
+        raise Exception("total_time is not divisible by TR")
+
+    output_series = np.zeros(int(output_len))
 
     onsets, durations, effect_sizes = _verify_design_params(onsets,
                                                             durations,
@@ -166,8 +173,6 @@ def specifydesign(total_time=100, onsets=range(0, 99, 20),
     design_out = np.zeros((len(onsets), total_time/TR))
     sample_idx = np.round(np.arange(0,total_time/accuracy,TR/accuracy))
     sample_idx = np.asarray(sample_idx, dtype=np.int)
-    if len(sample_idx) > design_out.shape[1]:
-        sample_idx = sample_idx[0:design_out.shape[1]]
 
     for cond, (onset, dur) in enumerate(zip(onsets, durations)):
         stim_timeseries = stimfunction(total_time, onset, dur, accuracy)

@@ -148,6 +148,16 @@ class TestSpecifyDesign(unittest.TestCase):
         """Test specifydesign doesn't throw exception with nested matching onsets + single dur in lists"""
         d = sim.specifydesign(onsets=[[1, 2],[1,2,3]], durations=[[1],[1,2,3]])
 
+    def test_non_numeric_total_time_throws_exception(self):
+        """Test specifydesign throws exception with non-numeric total_time"""
+        with self.assertRaises(Exception):
+            d = sim.specifydesign(total_time='bad',onsets=[1, 2], durations=[1, 2])
+
+    def test_non_evenly_divisible_sampling_throws_exception(self):
+        """Test specifydesign throws exception with total_time/TR problem"""
+        with self.assertRaises(Exception):
+            d = sim.specifydesign(total_time=10.5,onsets=[1, 2], durations=[1, 2],TR=2)
+
     def test_output_is_correct_length(self):
         """Test specifydesign returns correct length output"""
         total_time = 100
