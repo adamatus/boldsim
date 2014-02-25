@@ -317,6 +317,28 @@ def physnoise(nscan=200, sigma=1, freq_heart=1.17, freq_respiration=0.2, TR=2, d
 
     return noise_out.reshape(mydim)
 
+def tasknoise(design, sigma=1, noise_dist='gaussian', dim=None):
+    """
+    Generate task-related noise
 
+    Args:
+        design (ndarray [spatial dims, nscan]): Output from specify design
+        noise_dist (string): Noise distribution, one of: "gaussian", "rayleigh"
+        sigma (float): Sigma of noise distribution
+        dim (list/tuple): Spatial dimensions of output, default = (1,)
 
+    Returns:
+        A ndarray [spatial dim, nscan] with the noise timeseries
 
+    Raises:
+        Exception
+    """
+
+    # Handle a single list by making it into a matrix
+    design = _to_ndarray(design)
+    if len(design.shape) == 1:
+        design = design.reshape((1,design.shape[0]))
+
+    noise = system_noise(nscan=design.shape[-1],sigma=sigma, noise_dist=noise_dist, dim=dim)
+
+    return noise * np.apply_along_axis(sum, axis=0, arr=design)

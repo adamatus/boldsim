@@ -373,3 +373,24 @@ class TestPhysNoise(unittest.TestCase):
         noise2 = sim.physnoise(dim=(2,2))
         self.assertTrue(np.all(noise1[0,:] == noise2[0,0,:]))
         self.assertTrue(np.all(noise1[0,:] == noise2[1,1,:]))
+
+class TestTaskNoise(unittest.TestCase):
+    """Unit tests for sim.tasknoise"""
+
+    def test_default_returns_expected(self):
+        """Test tasknoise default arguments"""
+        d = sim.specifydesign()
+        noise = sim.tasknoise(design=d)
+        self.assertTrue(noise.shape == (1,50))
+
+    def test_handles_simple_list_design(self):
+        """Test tasknoise handles simple list design"""
+        noise = sim.tasknoise(design=[0, 0, 0, 0, 1, 1, 1, 1])
+        self.assertTrue(noise.shape == (1,8))
+
+    def test_noise_is_only_during_task(self):
+        """Test tasknoise is only present during task"""
+        design = np.concatenate((np.zeros(1000),np.ones(1000)))
+        noise = sim.tasknoise(design=design, sigma=1)
+        self.assertAlmostEqual(0.0, np.std(noise[0,design==0]))
+        self.assertAlmostEqual(1.0, np.std(noise[0,design==1]), places=2)
