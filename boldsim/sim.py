@@ -138,7 +138,7 @@ def specifydesign(total_time=100, onsets=range(0, 99, 20),
     Generate a model hemodynamic response for given onsets and durations
 
     Args:
-        total_time (int): Total time of design (in seconds)
+        total_time (int/float): Total time of design (in seconds)
         onsets (list/ndarray) : Onset times of events (in seconds)
         durations (int/list/ndarray): Duration time/s of events (in seconds)
         effect_sizes (int/list/ndarray): Effect sizes for conditions
@@ -153,6 +153,10 @@ def specifydesign(total_time=100, onsets=range(0, 99, 20),
     Raises:
         Exception
     """
+    if not isinstance(total_time, Number):
+        raise Exception("Argument total_time should be a number")
+
+    accuracy = float(accuracy)
 
     onsets, durations, effect_sizes = _verify_design_params(onsets,
                                                             durations,
@@ -236,7 +240,7 @@ def lowfreqdrift(nscan=200, freq=128.0, TR=2, dim=None):
     Args:
         nscan (int): Total time of design (in scans)
         freq (float): Low frequency drift
-        TR (int): Repetition time in seconds
+        TR (int/float): Repetition time in seconds
         dim (list/tuple): Spatial dimensions of output, default = (1,)
 
     Returns:
@@ -276,3 +280,43 @@ def lowfreqdrift(nscan=200, freq=128.0, TR=2, dim=None):
     mydim.append(nscan)
 
     return drift_out.reshape(mydim)
+
+def physnoise(nscan=200, sigma=1, freq_heart=1.17, freq_respiration=0.2, TR=2, dim=None):
+    """
+    Generate physiological (cardiac and repiratory) noise
+
+    Args:
+        nscan (int): Total time of design (in scans)
+        freq_heart (float): Heart rate
+        freq_respiration (float): Repiration rate
+        TR (int/float): Repetition time in seconds
+        dim (list/tuple): Spatial dimensions of output, default = (1,)
+
+    Returns:
+        A ndarray [spatial dim, nscan] with the noise timeseries
+
+    Raises:
+        Exception
+    """
+
+    # Handle the dim parameter
+    mydim = _handle_dim(dim)
+
+    heart_beat = 2 * np.pi * freq_heart * TR
+    repiration = 2 * np.pi * freq_respiration * TR
+    timepoints = np.arange(nscan)
+
+    hr_drift = np.sin(heart_beat * timepoints) + \
+               np.cos(repiration * timepoints)
+    hr_sigma = np.std(hr_drift)
+    hr_weight = sigma/hr_sigma
+
+    noise_image = np.ones(mydim)
+    noise_out = np.outer(noise_image, hr_drift * hr_weight)
+    mydim.append(nscan)
+
+    return noise_out.reshape(mydim)
+
+
+
+

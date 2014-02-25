@@ -353,10 +353,23 @@ class TestLowFreqNoise(unittest.TestCase):
             noise = sim.lowfreqdrift(dim='bad')
 
     def test_reshape_is_good(self):
-        """Test lowfrewnoise reshape returns expected timeseries"""
+        """Test lowfreqnoise reshape returns expected timeseries"""
         noise1 = sim.lowfreqdrift()
         noise2 = sim.lowfreqdrift(dim=(2,2))
         self.assertTrue(np.all(noise1[0,:] == noise2[0,0,:]))
         self.assertTrue(np.all(noise1[0,:] == noise2[1,1,:]))
 
+class TestPhysNoise(unittest.TestCase):
+    """Unit tests for sim.physnoise"""
 
+    def test_default_returns_expected(self):
+        """Test physnoise default arguments"""
+        noise = sim.physnoise()
+        self.assertTrue(noise.shape == (1,200))
+
+    def test_reshape_is_good(self):
+        """Test physnoise reshape returns expected timeseries"""
+        noise1 = sim.physnoise()
+        noise2 = sim.physnoise(dim=(2,2))
+        self.assertTrue(np.all(noise1[0,:] == noise2[0,0,:]))
+        self.assertTrue(np.all(noise1[0,:] == noise2[1,1,:]))
