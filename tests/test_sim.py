@@ -300,8 +300,8 @@ class TestSystemNoise(unittest.TestCase):
             noise = sim.system_noise(nscan=1000,noise_dist='gaussian',sigma=sigma)
             noise_mean = np.mean(noise[0])
             noise_sd = np.std(noise[0])
-            self.assertTrue((-.1*sigma) < noise_mean < (.10*sigma))
-            self.assertTrue((sigma*.9) < noise_sd < (sigma*1.1))
+            self.assertTrue((-.2*sigma) < noise_mean < (.20*sigma))
+            self.assertTrue((sigma*.8) < noise_sd < (sigma*1.2))
 
     def test_returns_good_rayleigh_noise(self):
         """Test systemnoise returns good Rayleigh noise"""
@@ -314,8 +314,8 @@ class TestSystemNoise(unittest.TestCase):
             noise_mean = np.mean(noise[0])
             noise_var = np.var(noise[0])
 
-            self.assertTrue((correct_mean*.9) < noise_mean < (correct_mean*1.1))
-            self.assertTrue((correct_var*.9) < noise_var < (correct_var*1.1))
+            self.assertTrue((correct_mean*.8) < noise_mean < (correct_mean*1.2))
+            self.assertTrue((correct_var*.8) < noise_var < (correct_var*1.2))
 
 class TestLowFreqNoise(unittest.TestCase):
     """Unit tests for sim.lowfreqnoise"""
@@ -393,4 +393,5 @@ class TestTaskNoise(unittest.TestCase):
         design = np.concatenate((np.zeros(1000),np.ones(1000)))
         noise = sim.tasknoise(design=design, sigma=1)
         self.assertAlmostEqual(0.0, np.std(noise[0,design==0]))
-        self.assertAlmostEqual(1.0, np.std(noise[0,design==1]), places=2)
+        good_noise_sd = np.std(noise[0,design==1])
+        self.assertTrue(.8 < good_noise_sd < 1.2 )
