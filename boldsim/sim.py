@@ -1,5 +1,6 @@
 """ Sim module: for simulating fMRI data """
 import numpy as np
+from warnings import warn
 from numbers import Number
 from scipy.stats import rayleigh, norm
 
@@ -30,7 +31,7 @@ def _handle_dim(dim):
     elif isinstance(dim, list):
         mydim = dim[:]
     else:
-        raise Exception('Invalid dim provided to lowfreqdrift: {}'.format(dim))
+        raise Exception('Invalid dim provided: {}'.format(dim))
     return mydim
 
 def stimfunction(total_time=100, onsets=range(0, 99, 20),
@@ -39,7 +40,7 @@ def stimfunction(total_time=100, onsets=range(0, 99, 20),
     Generate a timeseries for a given set of onsets and durations
 
     Args:
-        total_time (int): Total time of design (in seconds)
+        total_time (int/float): Total time of design (in seconds)
         onsets (list/ndarray) : Onset times of events (in seconds)
         durations (int/list/ndarray): Duration time/s or events (in seconds)
         accuracy (float): Microtime resolution in seconds
@@ -50,8 +51,10 @@ def stimfunction(total_time=100, onsets=range(0, 99, 20),
     Raises:
         Exception
     """
-    if type(total_time) is not int:
-        raise Exception("total_time should be an integer")
+    if not isinstance(total_time, Number):
+        raise Exception("Argument total_time should be a number")
+
+    accuracy = float(accuracy)
 
     # Make sure onsets is an ndarray
     onsets = _to_ndarray(onsets)
@@ -61,15 +64,23 @@ def stimfunction(total_time=100, onsets=range(0, 99, 20),
     if len(durations) == 1:
         durations = durations.repeat(len(onsets))
     if len(durations) != len(onsets):
-        raise Exception("durations and onsets need to be same length")
+        raise Exception("Stim durations and onsets lists " +
+                        "need to be same length")
 
-    if np.max(onsets) >= total_time:
-        raise Exception("Mismatch between onsets and totaltime")
+    if np.max(onsets+durations) >= total_time:
+        warn('Onsets/durations go past total_time. ' + 
+             'Some events will be truncated/missing')
 
     resampled_onsets = onsets/accuracy
     resampled_durs = durations/accuracy
 
-    output_series = np.zeros(total_time/accuracy)
+    output_len = total_time/accuracy
+    if not output_len.is_integer():
+        warn('total_time is not evenly divisibly by accuracy, ' +
+             'output will be slightly truncated and may not ' +
+             'exactly match total_time')
+
+    output_series = np.zeros(int(output_len))
 
     for onset, dur in zip(resampled_onsets, resampled_durs):
         output_series[onset:(onset+dur)] = 1
@@ -127,7 +138,7 @@ def specifydesign(total_time=100, onsets=range(0, 99, 20),
     Generate a model hemodynamic response for given onsets and durations
 
     Args:
-        total_time (int): Total time of design (in seconds)
+        total_time (int/float): Total time of design (in seconds)
         onsets (list/ndarray) : Onset times of events (in seconds)
         durations (int/list/ndarray): Duration time/s of events (in seconds)
         effect_sizes (int/list/ndarray): Effect sizes for conditions
@@ -142,17 +153,26 @@ def specifydesign(total_time=100, onsets=range(0, 99, 20),
     Raises:
         Exception
     """
+    if not isinstance(total_time, Number):
+        raise Exception("Argument total_time should be a number")
+
+    accuracy = float(accuracy)
 
     onsets, durations, effect_sizes = _verify_design_params(onsets,
                                                             durations,
                                                             effect_sizes)
 
-    design_out = np.zeros((len(onsets), total_time/accuracy))
+    design_out = np.zeros((len(onsets), total_time/TR))
+    sample_idx = np.round(np.arange(0,total_time/accuracy,TR/accuracy))
+    sample_idx = np.asarray(sample_idx, dtype=np.int)
+    if len(sample_idx) > design_out.shape[1]:
+        sample_idx = sample_idx[0:design_out.shape[1]]
+
     for cond, (onset, dur) in enumerate(zip(onsets, durations)):
         stim_timeseries = stimfunction(total_time, onset, dur, accuracy)
 
         if conv == 'none':
-            design_out[cond, :] = stim_timeseries * effect_sizes[cond]
+            design_out[cond, :] = stim_timeseries[sample_idx] * effect_sizes[cond]
 
         if conv in ['gamma', 'double-gamma']:
             x = np.arange(0, total_time, accuracy)
@@ -161,7 +181,7 @@ def specifydesign(total_time=100, onsets=range(0, 99, 20),
                               mode='full')[0:(len(stim_timeseries))]
             out /= np.max(out, axis=0)
             out *= effect_sizes[cond]
-            design_out[cond, :] = out
+            design_out[cond, :] = out[sample_idx]
 
     return design_out
 
@@ -220,7 +240,7 @@ def lowfreqdrift(nscan=200, freq=128.0, TR=2, dim=None):
     Args:
         nscan (int): Total time of design (in scans)
         freq (float): Low frequency drift
-        TR (int): Repetition time in seconds
+        TR (int/float): Repetition time in seconds
         dim (list/tuple): Spatial dimensions of output, default = (1,)
 
     Returns:
@@ -260,3 +280,65 @@ def lowfreqdrift(nscan=200, freq=128.0, TR=2, dim=None):
     mydim.append(nscan)
 
     return drift_out.reshape(mydim)
+
+def physnoise(nscan=200, sigma=1, freq_heart=1.17, freq_respiration=0.2, TR=2, dim=None):
+    """
+    Generate physiological (cardiac and repiratory) noise
+
+    Args:
+        nscan (int): Total time of design (in scans)
+        freq_heart (float): Heart rate
+        freq_respiration (float): Repiration rate
+        TR (int/float): Repetition time in seconds
+        dim (list/tuple): Spatial dimensions of output, default = (1,)
+
+    Returns:
+        A ndarray [spatial dim, nscan] with the noise timeseries
+
+    Raises:
+        Exception
+    """
+
+    # Handle the dim parameter
+    mydim = _handle_dim(dim)
+
+    heart_beat = 2 * np.pi * freq_heart * TR
+    repiration = 2 * np.pi * freq_respiration * TR
+    timepoints = np.arange(nscan)
+
+    hr_drift = np.sin(heart_beat * timepoints) + \
+               np.cos(repiration * timepoints)
+    hr_sigma = np.std(hr_drift)
+    hr_weight = sigma/hr_sigma
+
+    noise_image = np.ones(mydim)
+    noise_out = np.outer(noise_image, hr_drift * hr_weight)
+    mydim.append(nscan)
+
+    return noise_out.reshape(mydim)
+
+def tasknoise(design, sigma=1, noise_dist='gaussian', dim=None):
+    """
+    Generate task-related noise
+
+    Args:
+        design (ndarray [spatial dims, nscan]): Output from specify design
+        noise_dist (string): Noise distribution, one of: "gaussian", "rayleigh"
+        sigma (float): Sigma of noise distribution
+        dim (list/tuple): Spatial dimensions of output, default = (1,)
+
+    Returns:
+        A ndarray [spatial dim, nscan] with the noise timeseries
+
+    Raises:
+        Exception
+    """
+
+    # Handle a single list by making it into a matrix
+    design = _to_ndarray(design)
+    if len(design.shape) == 1:
+        design = design.reshape((1,design.shape[0]))
+
+    noise = system_noise(nscan=design.shape[-1],sigma=sigma, noise_dist=noise_dist, dim=dim)
+
+    return noise * np.apply_along_axis(sum, axis=0, arr=design)

@@ -1,4 +1,5 @@
 import unittest
+import warnings
 import numpy as np
 
 from boldsim import sim
@@ -13,14 +14,12 @@ class TestStimfunction(unittest.TestCase):
         self.duration = 2
         self.acc = 1
 
-    def test_total_time_is_int(self):
-        d = sim.stimfunction(100, self.onsets, self.duration,
-                              accuracy=1)
-
+    def test_total_time_is_number(self):
+        """Test stimfunction only takes number for total_time"""
+        d = sim.stimfunction(total_time=100)
+        d = sim.stimfunction(total_time=100.5, accuracy=0.5)
         with self.assertRaises(Exception):
-            d = sim.stimfunction(100.5, self.onsets, self.duration,
-                                 accuracy=1)
-
+            d = sim.stimfunction(total_time=[100.5])
 
     def test_output_is_correct_length(self):
         """Test stimfunction returns correct length output"""
@@ -52,20 +51,35 @@ class TestStimfunction(unittest.TestCase):
         self.assertTrue(np.all(s == [1, 0, 1, 0]))
 
     def test_onset_exceptions(self):
-        """Test stimfunction onsets exception handling"""
-        def f(x):
-            s = sim.stimfunction(10, x,
-                                 self.duration, 1)
-        self.assertRaises(Exception, f, 12)
-
-        # We shouldn't raise an error if onset is < total_time
-        f(2)
-
+        """Test stimfunction throws exception with non-matching onsets and durs"""
         # We need to have matching length lists for durations and onsets
+        s = sim.stimfunction(10,
+                             onsets=[1, 2, 3],
+                             durations=[1, 2, 1], accuracy=1)
         with self.assertRaises(Exception):
             s = sim.stimfunction(10,
                                  onsets=[1, 2, 3],
                                  durations=[1, 2], accuracy=1)
+
+    def test_truncation_warning(self):
+        """Test stimfunction warns user if total_time is not divisible by accuracy"""
+        with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter("always")
+            d = sim.stimfunction(total_time=100.5, accuracy=1.0)
+            d = sim.stimfunction(total_time=100.5, accuracy=0.5)
+            self.assertTrue(len(w) == 1)
+
+    def test_durations_past_total_time_warning(self):
+        """Test stimfunction warns user if onsets/durations go past total_time"""
+        with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter("always")
+            d = sim.stimfunction(total_time=10, onsets=[8,15], durations=1,
+                                 accuracy=1.0) # Warn
+            d = sim.stimfunction(total_time=10, onsets=[9], durations=2,
+                                 accuracy=1.0) # Warn
+            d = sim.stimfunction(total_time=10, onsets=[8], durations=1,
+                                 accuracy=1.0) # Don't warn
+            self.assertTrue(len(w) == 2)
 
 class TestSpecifyDesign(unittest.TestCase):
     """Unit tests for sim.specifydesign"""
@@ -136,30 +150,28 @@ class TestSpecifyDesign(unittest.TestCase):
 
     def test_output_is_correct_length(self):
         """Test specifydesign returns correct length output"""
-        d = sim.specifydesign(100, self.onsets, self.duration,
-                              accuracy=1, conv='gamma')
-        self.assertTrue(d.shape[1] == 100)
+        total_time = 100
+        TR = 2
+        d = sim.specifydesign(total_time=total_time, onsets=self.onsets,
+                              durations=self.duration, TR=TR, accuracy=1,
+                              conv='gamma')
+        self.assertTrue(d.shape[1] == total_time/TR)
 
-        d = sim.specifydesign(100, self.onsets, self.duration,
-                              accuracy=.1, conv='gamma')
-        self.assertTrue(d.shape[1] == 100/.1)
+        d = sim.specifydesign(total_time=total_time, onsets=self.onsets,
+                              durations=self.duration, TR=TR, accuracy=.1,
+                              conv='gamma')
+        self.assertTrue(d.shape[1] == total_time/TR)
 
     def test_with_no_arguments(self):
         """Test specifydesign with no args matches stimfunction"""
         s = sim.stimfunction()
         d = sim.specifydesign()
-        self.assertTrue(np.all(s == d))
-
-    def test_single_with_no_conv(self):
-        """Test specifydesign for 1 condition with no convolution matches function"""
-        s = sim.stimfunction()
-        d = sim.specifydesign(conv='none')
-        self.assertTrue(np.all(s == d))
+        self.assertTrue(np.all(s[::2] == d))
 
     def test_single_with_gamma(self):
         """Test specifydesign for 1 condition with gamma convolution"""
         d = sim.specifydesign(self.total_time, self.onsets, self.duration,
-                              accuracy=self.acc, conv='gamma')
+                              accuracy=1, TR=1, conv='gamma')
         g = sim.gamma(np.arange(30))
         g /= np.max(g)
         g = np.round(g,decimals=5)
@@ -169,7 +181,7 @@ class TestSpecifyDesign(unittest.TestCase):
     def test_single_with_double_gamma(self):
         """Test specifydesign for 1 condition with double-gamma convolution"""
         d = sim.specifydesign(self.total_time, self.onsets, self.duration,
-                              accuracy=self.acc, conv='double-gamma')
+                              accuracy=1, TR=1, conv='double-gamma')
         g = sim.double_gamma(np.arange(30))
         g /= np.max(g)
         g = np.round(g,decimals=5)
@@ -184,8 +196,8 @@ class TestSpecifyDesign(unittest.TestCase):
         s1 = sim.stimfunction(onsets=onsets[0], durations=duration)
         s2 = sim.stimfunction(onsets=onsets[1], durations=duration)
         d = sim.specifydesign(onsets=onsets, durations=duration, conv='none')
-        self.assertTrue(np.all(s1 == d[0,:]))
-        self.assertTrue(np.all(s2 == d[1,:]))
+        self.assertTrue(np.all(s1[::2] == d[0,:]))
+        self.assertTrue(np.all(s2[::2] == d[1,:]))
 
     def test_multiple_with_no_conv_diff_effect_sizes(self):
         """Test specifydesign for 2 conditions with no convolution but diff effect sizes matches function"""
@@ -193,17 +205,17 @@ class TestSpecifyDesign(unittest.TestCase):
         duration = 1
         effect_sizes = [1,2]
         acc = 1
-        s1 = sim.stimfunction(onsets=onsets[0], durations=duration)
-        s2 = sim.stimfunction(onsets=onsets[1], durations=duration)
+        s1 = sim.stimfunction(onsets=onsets[0], durations=duration, accuracy=1)
+        s2 = sim.stimfunction(onsets=onsets[1], durations=duration, accuracy=1)
         d = sim.specifydesign(onsets=onsets, durations=duration, effect_sizes=effect_sizes, conv='none')
-        self.assertTrue(np.all(s1*effect_sizes[0] == d[0,:]))
-        self.assertTrue(np.all(s2*effect_sizes[1] == d[1,:]))
+        self.assertTrue(np.all(s1[::2]*effect_sizes[0] == d[0,:]))
+        self.assertTrue(np.all(s2[::2]*effect_sizes[1] == d[1,:]))
 
     def test_multiple_with_gamma(self):
         """Test specifydesign for 2 conditions with gamma convolution"""
         onsets = [[0,50],[25]]
         duration = 1
-        d = sim.specifydesign(onsets=onsets, durations=duration, conv='gamma')
+        d = sim.specifydesign(onsets=onsets, durations=duration, accuracy=1, TR=1, conv='gamma')
         g = sim.gamma(np.arange(30))
         g /= np.max(g)
         g = np.round(g,decimals=5)
@@ -216,7 +228,8 @@ class TestSpecifyDesign(unittest.TestCase):
         onsets = [[0,50],[25]]
         effect_sizes = [1,2]
         duration = 1
-        d = sim.specifydesign(onsets=onsets, durations=duration, effect_sizes=effect_sizes, conv='gamma')
+        d = sim.specifydesign(onsets=onsets, durations=duration, effect_sizes=effect_sizes,
+                              accuracy=1, TR=1, conv='gamma')
         g = sim.gamma(np.arange(30))
         g /= np.max(g)
         g *= effect_sizes[0]
@@ -340,10 +353,44 @@ class TestLowFreqNoise(unittest.TestCase):
             noise = sim.lowfreqdrift(dim='bad')
 
     def test_reshape_is_good(self):
-        """Test lowfrewnoise reshape returns expected timeseries"""
+        """Test lowfreqnoise reshape returns expected timeseries"""
         noise1 = sim.lowfreqdrift()
         noise2 = sim.lowfreqdrift(dim=(2,2))
         self.assertTrue(np.all(noise1[0,:] == noise2[0,0,:]))
         self.assertTrue(np.all(noise1[0,:] == noise2[1,1,:]))
 
+class TestPhysNoise(unittest.TestCase):
+    """Unit tests for sim.physnoise"""
 
+    def test_default_returns_expected(self):
+        """Test physnoise default arguments"""
+        noise = sim.physnoise()
+        self.assertTrue(noise.shape == (1,200))
+
+    def test_reshape_is_good(self):
+        """Test physnoise reshape returns expected timeseries"""
+        noise1 = sim.physnoise()
+        noise2 = sim.physnoise(dim=(2,2))
+        self.assertTrue(np.all(noise1[0,:] == noise2[0,0,:]))
+        self.assertTrue(np.all(noise1[0,:] == noise2[1,1,:]))
+
+class TestTaskNoise(unittest.TestCase):
+    """Unit tests for sim.tasknoise"""
+
+    def test_default_returns_expected(self):
+        """Test tasknoise default arguments"""
+        d = sim.specifydesign()
+        noise = sim.tasknoise(design=d)
+        self.assertTrue(noise.shape == (1,50))
+
+    def test_handles_simple_list_design(self):
+        """Test tasknoise handles simple list design"""
+        noise = sim.tasknoise(design=[0, 0, 0, 0, 1, 1, 1, 1])
+        self.assertTrue(noise.shape == (1,8))
+
+    def test_noise_is_only_during_task(self):
+        """Test tasknoise is only present during task"""
+        design = np.concatenate((np.zeros(1000),np.ones(1000)))
+        noise = sim.tasknoise(design=design, sigma=1)
+        self.assertAlmostEqual(0.0, np.std(noise[0,design==0]))
+        self.assertAlmostEqual(1.0, np.std(noise[0,design==1]), places=2)
