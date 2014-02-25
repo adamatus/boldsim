@@ -395,3 +395,22 @@ class TestTaskNoise(unittest.TestCase):
         self.assertAlmostEqual(0.0, np.std(noise[0,design==0]))
         good_noise_sd = np.std(noise[0,design==1])
         self.assertTrue(.8 < good_noise_sd < 1.2 )
+
+class TestTemporalNoise(unittest.TestCase):
+    """Unit tests for sim.temporalnoise"""
+
+    def test_default_returns_expected(self):
+        """Test temporalnoise default arguments"""
+        noise = sim.temporalnoise()
+        self.assertTrue(noise.shape == (1,200))
+
+    def test_handles_ar_coeff_list(self):
+        """Test temporalnoise default arguments"""
+        noise = sim.temporalnoise(ar_coef=[.2, .3, .2])
+        self.assertTrue(noise.shape == (1,200))
+
+    def test_handles_reshape(self):
+        """Test temporalnoise default arguments"""
+        noise = sim.temporalnoise(nscan=150, ar_coef=[.2, .3, .2], dim=[3, 3])
+        self.assertTrue(noise.shape == (3,3,150))
+

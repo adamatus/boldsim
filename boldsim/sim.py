@@ -3,6 +3,7 @@ import numpy as np
 from warnings import warn
 from numbers import Number
 from scipy.stats import rayleigh, norm
+import statsmodels.tsa.arima_process
 
 def _to_ndarray(arr):
     """
@@ -68,7 +69,7 @@ def stimfunction(total_time=100, onsets=range(0, 99, 20),
                         "need to be same length")
 
     if np.max(onsets+durations) >= total_time:
-        warn('Onsets/durations go past total_time. ' + 
+        warn('Onsets/durations go past total_time. ' +
              'Some events will be truncated/missing')
 
     resampled_onsets = onsets/accuracy
@@ -342,3 +343,38 @@ def tasknoise(design, sigma=1, noise_dist='gaussian', dim=None):
     noise = system_noise(nscan=design.shape[-1],sigma=sigma, noise_dist=noise_dist, dim=dim)
 
     return noise * np.apply_along_axis(sum, axis=0, arr=design)
+
+def temporalnoise(nscan=200, sigma=1, ar_coef=0.2, dim=None):
+    """
+    Generate physiological (cardiac and repiratory) noise
+
+    Args:
+        nscan (int): Total time of design (in scans)
+        sigma (float): Sigma of noise distribution
+        ar_coef (float/list): Autocorrelation coefficients. Length of list
+                         determines order of autoregressive model,
+                         default = [.2]
+        dim (list/tuple): Spatial dimensions of output, default = (1,)
+
+    Returns:
+        A ndarray [spatial dim, nscan] with the noise timeseries
+
+    Raises:
+        Exception
+    """
+
+    # Handle the dim parameter
+    mydim = _handle_dim(dim)
+
+    # Convert to ndarray and pop 1 on the front
+    ar_coef = np.concatenate(([1],_to_ndarray(ar_coef)))
+
+    # Get one big random series, then chop it up
+    samples = nscan * np.prod(mydim)
+    tnoise = statsmodels.tsa.arima_process.arma_generate_sample(ar=ar_coef,
+                                                                ma=[1, 0],
+                                                                nsample=samples,
+                                                                sigma=sigma,
+                                                                burnin=500)
+    mydim.append(nscan)
+    return tnoise.reshape(mydim)
