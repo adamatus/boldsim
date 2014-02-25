@@ -158,12 +158,17 @@ def specifydesign(total_time=100, onsets=range(0, 99, 20),
                                                             durations,
                                                             effect_sizes)
 
-    design_out = np.zeros((len(onsets), total_time/accuracy))
+    design_out = np.zeros((len(onsets), total_time/TR))
+    sample_idx = np.round(np.arange(0,total_time/accuracy,TR/accuracy))
+    sample_idx = np.asarray(sample_idx, dtype=np.int)
+    if len(sample_idx) > design_out.shape[1]:
+        sample_idx = sample_idx[0:design_out.shape[1]]
+
     for cond, (onset, dur) in enumerate(zip(onsets, durations)):
         stim_timeseries = stimfunction(total_time, onset, dur, accuracy)
 
         if conv == 'none':
-            design_out[cond, :] = stim_timeseries * effect_sizes[cond]
+            design_out[cond, :] = stim_timeseries[sample_idx] * effect_sizes[cond]
 
         if conv in ['gamma', 'double-gamma']:
             x = np.arange(0, total_time, accuracy)
@@ -172,7 +177,7 @@ def specifydesign(total_time=100, onsets=range(0, 99, 20),
                               mode='full')[0:(len(stim_timeseries))]
             out /= np.max(out, axis=0)
             out *= effect_sizes[cond]
-            design_out[cond, :] = out
+            design_out[cond, :] = out[sample_idx]
 
     return design_out
 

@@ -150,30 +150,28 @@ class TestSpecifyDesign(unittest.TestCase):
 
     def test_output_is_correct_length(self):
         """Test specifydesign returns correct length output"""
-        d = sim.specifydesign(100, self.onsets, self.duration,
-                              accuracy=1, conv='gamma')
-        self.assertTrue(d.shape[1] == 100)
+        total_time = 100
+        TR = 2
+        d = sim.specifydesign(total_time=total_time, onsets=self.onsets,
+                              durations=self.duration, TR=TR, accuracy=1,
+                              conv='gamma')
+        self.assertTrue(d.shape[1] == total_time/TR)
 
-        d = sim.specifydesign(100, self.onsets, self.duration,
-                              accuracy=.1, conv='gamma')
-        self.assertTrue(d.shape[1] == 100/.1)
+        d = sim.specifydesign(total_time=total_time, onsets=self.onsets,
+                              durations=self.duration, TR=TR, accuracy=.1,
+                              conv='gamma')
+        self.assertTrue(d.shape[1] == total_time/TR)
 
     def test_with_no_arguments(self):
         """Test specifydesign with no args matches stimfunction"""
         s = sim.stimfunction()
         d = sim.specifydesign()
-        self.assertTrue(np.all(s == d))
-
-    def test_single_with_no_conv(self):
-        """Test specifydesign for 1 condition with no convolution matches function"""
-        s = sim.stimfunction()
-        d = sim.specifydesign(conv='none')
-        self.assertTrue(np.all(s == d))
+        self.assertTrue(np.all(s[::2] == d))
 
     def test_single_with_gamma(self):
         """Test specifydesign for 1 condition with gamma convolution"""
         d = sim.specifydesign(self.total_time, self.onsets, self.duration,
-                              accuracy=self.acc, conv='gamma')
+                              accuracy=1, TR=1, conv='gamma')
         g = sim.gamma(np.arange(30))
         g /= np.max(g)
         g = np.round(g,decimals=5)
@@ -183,7 +181,7 @@ class TestSpecifyDesign(unittest.TestCase):
     def test_single_with_double_gamma(self):
         """Test specifydesign for 1 condition with double-gamma convolution"""
         d = sim.specifydesign(self.total_time, self.onsets, self.duration,
-                              accuracy=self.acc, conv='double-gamma')
+                              accuracy=1, TR=1, conv='double-gamma')
         g = sim.double_gamma(np.arange(30))
         g /= np.max(g)
         g = np.round(g,decimals=5)
@@ -198,8 +196,8 @@ class TestSpecifyDesign(unittest.TestCase):
         s1 = sim.stimfunction(onsets=onsets[0], durations=duration)
         s2 = sim.stimfunction(onsets=onsets[1], durations=duration)
         d = sim.specifydesign(onsets=onsets, durations=duration, conv='none')
-        self.assertTrue(np.all(s1 == d[0,:]))
-        self.assertTrue(np.all(s2 == d[1,:]))
+        self.assertTrue(np.all(s1[::2] == d[0,:]))
+        self.assertTrue(np.all(s2[::2] == d[1,:]))
 
     def test_multiple_with_no_conv_diff_effect_sizes(self):
         """Test specifydesign for 2 conditions with no convolution but diff effect sizes matches function"""
@@ -207,17 +205,17 @@ class TestSpecifyDesign(unittest.TestCase):
         duration = 1
         effect_sizes = [1,2]
         acc = 1
-        s1 = sim.stimfunction(onsets=onsets[0], durations=duration)
-        s2 = sim.stimfunction(onsets=onsets[1], durations=duration)
+        s1 = sim.stimfunction(onsets=onsets[0], durations=duration, accuracy=1)
+        s2 = sim.stimfunction(onsets=onsets[1], durations=duration, accuracy=1)
         d = sim.specifydesign(onsets=onsets, durations=duration, effect_sizes=effect_sizes, conv='none')
-        self.assertTrue(np.all(s1*effect_sizes[0] == d[0,:]))
-        self.assertTrue(np.all(s2*effect_sizes[1] == d[1,:]))
+        self.assertTrue(np.all(s1[::2]*effect_sizes[0] == d[0,:]))
+        self.assertTrue(np.all(s2[::2]*effect_sizes[1] == d[1,:]))
 
     def test_multiple_with_gamma(self):
         """Test specifydesign for 2 conditions with gamma convolution"""
         onsets = [[0,50],[25]]
         duration = 1
-        d = sim.specifydesign(onsets=onsets, durations=duration, conv='gamma')
+        d = sim.specifydesign(onsets=onsets, durations=duration, accuracy=1, TR=1, conv='gamma')
         g = sim.gamma(np.arange(30))
         g /= np.max(g)
         g = np.round(g,decimals=5)
@@ -230,7 +228,8 @@ class TestSpecifyDesign(unittest.TestCase):
         onsets = [[0,50],[25]]
         effect_sizes = [1,2]
         duration = 1
-        d = sim.specifydesign(onsets=onsets, durations=duration, effect_sizes=effect_sizes, conv='gamma')
+        d = sim.specifydesign(onsets=onsets, durations=duration, effect_sizes=effect_sizes,
+                              accuracy=1, TR=1, conv='gamma')
         g = sim.gamma(np.arange(30))
         g /= np.max(g)
         g *= effect_sizes[0]
