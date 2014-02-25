@@ -1,4 +1,5 @@
 [report]
-omit = 
+omit =
     */python?.?/*
     */site-packages/*
+    /usr/share/pyshared/*
