@@ -164,21 +164,20 @@ def specifydesign(total_time=100, onsets=range(0, 99, 20),
     if not output_len.is_integer():
         raise Exception("total_time is not divisible by TR")
 
-    output_series = np.zeros(int(output_len))
-
     onsets, durations, effect_sizes = _verify_design_params(onsets,
                                                             durations,
                                                             effect_sizes)
 
     design_out = np.zeros((len(onsets), total_time/TR))
-    sample_idx = np.round(np.arange(0,total_time/accuracy,TR/accuracy))
+    sample_idx = np.round(np.arange(0, total_time/accuracy, TR/accuracy))
     sample_idx = np.asarray(sample_idx, dtype=np.int)
 
     for cond, (onset, dur) in enumerate(zip(onsets, durations)):
         stim_timeseries = stimfunction(total_time, onset, dur, accuracy)
 
         if conv == 'none':
-            design_out[cond, :] = stim_timeseries[sample_idx] * effect_sizes[cond]
+            design_out[cond, :] = stim_timeseries[sample_idx] * \
+                                  effect_sizes[cond]
 
         if conv in ['gamma', 'double-gamma']:
             x = np.arange(0, total_time, accuracy)
@@ -287,7 +286,8 @@ def lowfreqdrift(nscan=200, freq=128.0, TR=2, dim=None):
 
     return drift_out.reshape(mydim)
 
-def physnoise(nscan=200, sigma=1, freq_heart=1.17, freq_respiration=0.2, TR=2, dim=None):
+def physnoise(nscan=200, sigma=1, freq_heart=1.17, freq_respiration=0.2, \
+              TR=2, dim=None):
     """
     Generate physiological (cardiac and repiratory) noise
 
@@ -343,9 +343,10 @@ def tasknoise(design, sigma=1, noise_dist='gaussian', dim=None):
     # Handle a single list by making it into a matrix
     design = _to_ndarray(design)
     if len(design.shape) == 1:
-        design = design.reshape((1,design.shape[0]))
+        design = design.reshape((1, design.shape[0]))
 
-    noise = system_noise(nscan=design.shape[-1],sigma=sigma, noise_dist=noise_dist, dim=dim)
+    noise = system_noise(nscan=design.shape[-1], sigma=sigma,
+                         noise_dist=noise_dist, dim=dim)
 
     return noise * np.apply_along_axis(sum, axis=0, arr=design)
 
@@ -372,7 +373,7 @@ def temporalnoise(nscan=200, sigma=1, ar_coef=0.2, dim=None):
     mydim = _handle_dim(dim)
 
     # Convert to ndarray and pop 1 on the front
-    ar_coef = np.concatenate(([1],_to_ndarray(ar_coef)))
+    ar_coef = np.concatenate(([1], _to_ndarray(ar_coef)))
 
     # Get one big random series, then chop it up
     samples = nscan * np.prod(mydim)
