@@ -424,3 +424,31 @@ class TestTemporalNoise(unittest.TestCase):
         noise = sim.temporalnoise(nscan=150, ar_coef=[.2, .3, .2], dim=[3, 3])
         self.assertTrue(noise.shape == (3,3,150))
 
+class TestSpatialNoise(unittest.TestCase):
+    """Unit tests for sim.spatialnoise"""
+
+    def test_throws_exception_on_vector(self):
+        """Test spatialnoise throws exception on vector"""
+        with self.assertRaises(Exception):
+            sim.spatialnoise(dim=[10])
+
+    def test_throws_exception_on_high_dim(self):
+        """Test spatialnoise throws exception on higher dim"""
+        with self.assertRaises(Exception):
+            sim.spatialnoise(dim=[10,10,10,10])
+
+    def test_throws_exception_on_unknown_method(self):
+        """Test spatialnoise throws exception on unknownmethod"""
+        with self.assertRaises(Exception):
+            sim.spatialnoise(method='magic',dim=[10,10])
+
+    def test_corr_3d_produces_resonable_output_dim(self):
+        """Test spatialnoise corr 3d produces correct size output [SMOKE]"""
+        noise = sim.spatialnoise(nscan=20, dim=[10,12,15])
+        self.assertEqual(noise.shape, (10, 12, 15, 20))
+
+    def test_corr_2d_produces_resonable_output_dim(self):
+        """Test spatialnoise corr 2d produces correct size output [SMOKE]"""
+        noise = sim.spatialnoise(nscan=20, dim=[10,12])
+        self.assertEqual(noise.shape, (10, 12, 20))
+

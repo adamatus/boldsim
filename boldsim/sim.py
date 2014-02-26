@@ -384,3 +384,88 @@ def temporalnoise(nscan=200, sigma=1, ar_coef=0.2, dim=None):
                                                                 burnin=500)
     mydim.append(nscan)
     return tnoise.reshape(mydim)
+
+def spatialnoise(nscan=200, method='corr', noise_dist='gaussian', sigma=1, \
+                 rho=0.75, FWHM=4, gamma_shape=6, gamma_rate=1, dim=None):
+    """
+    Generate spatially correlated noise
+
+    Args:
+        nscan (int): Total time of design (in scans)
+        noise_dist (string): Noise distribution, one of: "gaussian", "rayleigh"
+        sigma (float): Sigma of noise distribution
+        dim (list): XYZ Dimensions of output
+
+    Returns:
+        A ndarray [dim, nscan] with the noise timeseries
+
+    Raises:
+        Exception
+    """
+    # Handle the dim parameter
+    mydim = _handle_dim(dim)
+    mydim.append(nscan)
+
+    if len(mydim[:-1]) == 1:
+        raise Exception('Spatially noise is not defined for vectors')
+    elif len(mydim[:-1]) > 3:
+        raise Exception('Image space with more than 3 dimensions not supported')
+
+    if method == 'corr':
+        noise = np.zeros(mydim)
+        for scan in range(nscan):
+            start = system_noise(nscan=1, sigma=sigma,
+                    noise_dist=noise_dist, dim=mydim[:-1]).squeeze()
+
+            noise_scan = np.zeros(mydim[:-1])
+
+            if len(mydim[:-1]) == 2:
+                noise_scan[0, 0] = start[0, 0]
+
+                # Fill in first column with correlated noise
+                for i in range(1, mydim[0]):
+                    noise_scan[i, 0] = rho * noise_scan[i-1, 0] + \
+                                      np.sqrt(1-rho**2) * start[i, 0]
+
+                # Fill in remaining columns with correlated noise
+                for j in range(1, mydim[1]):
+                    noise_scan[:, j] = rho * noise_scan[:, j-1] + \
+                                      np.sqrt(1-rho**2) * start[:, j]
+
+                # Add correlation across rows
+                for i in range(1, mydim[0]):
+                    noise_scan[i, 1:] = rho * noise_scan[i-1, 1:] + \
+                                        np.sqrt(1-rho**2) * noise_scan[i, 1:]
+
+                noise[:, :, scan] = noise_scan
+
+            else: # 3 dim spatial noise
+                noise_scan[0, 0, 0] = start[0, 0, 0]
+
+                # Fill in first column with correlated noise
+                for i in range(1, mydim[0]):
+                    noise_scan[i, 0, 0] = rho * noise_scan[i-1, 0, 0] + \
+                                          np.sqrt(1-rho**2) * start[i, 0, 0]
+
+                # Fill in remaining columns with correlated noise
+                for j in range(1, mydim[1]):
+                    noise_scan[:, j, 0] = rho * noise_scan[:, j-1, 0] + \
+                                          np.sqrt(1-rho**2) * start[:, j, 0]
+
+                # Fill in remaining 3rd dim with correlated noise
+                for k in range(1, mydim[2]):
+                    noise_scan[:, :, k] = rho * noise_scan[:, :, k-1] + \
+                                          np.sqrt(1-rho**2) * start[:, :, k]
+
+                # Add correlation across rows
+                for i in range(1, mydim[0]):
+                    noise_scan[i, 1:, 1:] = rho * noise_scan[i-1, 1:, 1:] + \
+                                            np.sqrt(1-rho**2) * \
+                                            noise_scan[i, 1:, 1:]
+
+                noise[:, :, :, scan] = noise_scan
+
+    else:
+        raise Exception('Unrecognized method {}'.format(method))
+
+    return noise
