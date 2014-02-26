@@ -501,3 +501,49 @@ def spatialnoise(nscan=200, method='corr', noise_dist='gaussian', sigma=1, \
         raise Exception('Unrecognized method {}'.format(method))
 
     return noise
+
+def simprepTemporal(total_time=100, onsets=range(0, 99, 20),
+                    durations=10, effect_sizes=1, TR=2, accuracy=1,
+                    conv='none'):
+    """"
+    Verify and package simulation parameters
+
+    Args:
+        total_time (int/float): Total time of design (in seconds)
+        onsets (list/ndarray) : Onset times of events (in seconds)
+        durations (int/list/ndarray): Duration time/s of events (in seconds)
+        effect_sizes (int/list/ndarray): Effect sizes for conditions
+        TR (int/float): Time of sampling
+        accuracy (float): Microtime resolution in seconds
+        conv (string): Convolution method, one of: "none", "gamma",
+                       "double-gamma"
+
+    Returns:
+        A ndarray with the stimulus timeseries
+
+    Raises:
+        Exception
+    """
+    if not isinstance(total_time, Number):
+        raise Exception("Argument total_time should be a number")
+
+    TR = float(TR)
+    accuracy = float(accuracy)
+
+    output_len = total_time/TR
+    if not output_len.is_integer():
+        raise Exception("total_time is not divisible by TR")
+
+    onsets, durations, effect_sizes = _verify_design_params(onsets,
+                                                            durations,
+                                                            effect_sizes)
+    out = dict()
+    out['onsets'] = onsets
+    out['durations'] = durations
+    out['effect_sizes'] = effect_sizes
+    out['total_time'] = total_time
+    out['TR'] = TR
+    out['accuracy'] = accuracy
+    out['hrf'] = conv
+
+    return out

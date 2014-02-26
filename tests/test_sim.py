@@ -462,3 +462,21 @@ class TestSpatialNoise(unittest.TestCase):
         noise = sim.spatialnoise(nscan=20, dim=[10,12,15], method='gaussRF')
         self.assertEqual(noise.shape, (10, 12, 15, 20))
 
+class TestSimPrepTemporal(unittest.TestCase):
+    """Unit tests for sim.simprepTemporal"""
+
+    def test_smoke_output_is_dict(self):
+        """Test simprepTemporal output is dict [SMOKE]"""
+        design = sim.simprepTemporal()
+        self.assertTrue(isinstance(design,dict))
+
+    def test_throws_exception_on_bad_total_time(self):
+        """Test simprepTemporal throws exception on bad total_time"""
+        with self.assertRaises(Exception):
+            design = sim.simprepTemporal(total_time='bad')
+
+    def test_throws_exception_on_bad_total_time_by_TR(self):
+        """Test simprepTemporal throws exception on bad total_time/TR"""
+        with self.assertRaises(Exception):
+            design = sim.simprepTemporal(total_time=100.5, TR=2)
+
