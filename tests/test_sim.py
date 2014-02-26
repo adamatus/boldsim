@@ -452,3 +452,13 @@ class TestSpatialNoise(unittest.TestCase):
         noise = sim.spatialnoise(nscan=20, dim=[10,12])
         self.assertEqual(noise.shape, (10, 12, 20))
 
+    def test_gaussRF_2d_produces_reasonable_output_dim(self):
+        """Test spatialnoise gaussRF 2d produces correct size output [SMOKE]"""
+        noise = sim.spatialnoise(nscan=20, dim=[10,12], method='gaussRF')
+        self.assertEqual(noise.shape, (10, 12, 20))
+
+    def test_gaussRF_3d_produces_reasonable_output_dim(self):
+        """Test spatialnoise gaussRF 3d produces correct size output [SMOKE]"""
+        noise = sim.spatialnoise(nscan=20, dim=[10,12,15], method='gaussRF')
+        self.assertEqual(noise.shape, (10, 12, 15, 20))
+

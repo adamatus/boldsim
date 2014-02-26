@@ -464,6 +464,39 @@ def spatialnoise(nscan=200, method='corr', noise_dist='gaussian', sigma=1, \
 
                 noise[:, :, :, scan] = noise_scan
 
+
+    elif method == 'gaussRF':
+        #FIXME Finish implementing this
+
+        # Compute 3d covariance matrix of field
+        s = np.diag([FWHM**2]*3)/(8*np.log(2))
+
+
+        # We always do RFs in 3d, so if we got a 2-d space,
+        # add a single 3rd dim
+        dim_rf = mydim[:]
+        if len(dim_rf) == 2:
+            dim_rf.append(1)
+
+        voxdim = len(dim_rf) # FIXME Won't this always be 3?
+
+        # Make the size of the kernel odd
+        if np.mod(FWHM, 2) == 0:
+            FWHM += 1
+
+        noise = np.zeros(dim_rf + [nscan])
+
+        def sim_3d_grf(voxdim, sigma, ksize, dims):
+            """Simulate 3d Gaussian Random Field """
+            grf_noise = np.zeros(dims)
+            return grf_noise
+
+        for scan in range(nscan):
+            noise[:, :, :, scan] = sim_3d_grf(voxdim, s, FWHM, dim_rf)
+
+        if len(mydim) == 2:
+            noise = noise.squeeze()
+
     else:
         raise Exception('Unrecognized method {}'.format(method))
 
