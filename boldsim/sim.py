@@ -404,22 +404,21 @@ def spatialnoise(nscan=200, method='corr', noise_dist='gaussian', sigma=1, \
     """
     # Handle the dim parameter
     mydim = _handle_dim(dim)
-    mydim.append(nscan)
 
-    if len(mydim[:-1]) == 1:
+    if len(mydim) == 1:
         raise Exception('Spatially noise is not defined for vectors')
-    elif len(mydim[:-1]) > 3:
+    elif len(mydim) > 3:
         raise Exception('Image space with more than 3 dimensions not supported')
 
     if method == 'corr':
-        noise = np.zeros(mydim)
+        noise = np.zeros(mydim + [nscan])
         for scan in range(nscan):
             start = system_noise(nscan=1, sigma=sigma,
-                    noise_dist=noise_dist, dim=mydim[:-1]).squeeze()
+                    noise_dist=noise_dist, dim=mydim).squeeze()
 
-            noise_scan = np.zeros(mydim[:-1])
+            noise_scan = np.zeros(mydim)
 
-            if len(mydim[:-1]) == 2:
+            if len(mydim) == 2:
                 noise_scan[0, 0] = start[0, 0]
 
                 # Fill in first column with correlated noise
