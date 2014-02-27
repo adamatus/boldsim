@@ -580,3 +580,76 @@ def simprepTemporal(total_time=100, onsets=range(0, 99, 20),
     out['hrf'] = conv
 
     return out
+
+def simTSfmri(design=None, base=10, SNR=2, noise='mixture', noise_dist='gaussian',
+              weights=None, ar_coef=0.2, freq_low=128, freq_heart=1.17,
+              freq_resp=0.2):
+    """
+    Generate a simulated fMRI timeseries
+    """
+
+    if design is None:
+        raise Exception('Must provide design from simprepTemporal to simTSfmri')
+
+    d_mat = specifydesign(total_time=design['total_time'],
+                          onsets=design['onsets'],
+                          durations=design['durations'],
+                          effect_sizes=design['effect_sizes'], TR=design['TR'],
+                          accuracy=design['accuracy'], conv=design['hrf'],
+                          verify_params=False)
+    bold = base + np.apply_along_axis(sum, axis=0, arr=d_mat)
+    sigma = np.mean(bold)/SNR
+    TR = design['TR']
+    nscan = design['total_time']/TR
+
+    # Setup weights based on the specific type of noise desired
+    if noise == 'none':
+        return bold
+    elif noise == 'white':
+        weights = [1, 0, 0, 0, 0]
+    elif noise == 'temporal':
+        weights = [0, 1, 0, 0, 0]
+    elif noise == 'low-freq':
+        weights = [0, 0, 1, 0, 0]
+    elif noise == 'phys':
+        weights = [0, 0, 0, 1, 0]
+    elif noise == 'task-related':
+        weights = [0, 0, 0, 0, 1]
+    elif noise == 'mixture':
+        if weights is None:
+            weights = [0.3, 0.3, 0.01, 0.09, 0.3]
+        if len(weights) != 5:
+            raise Exception('Weights vector should have 5 elements')
+        if np.sum(weights) != 1:
+            raise Exception('Weights vector should sum to 1')
+    else:
+        raise Exception('Unknown noise setting: {}'.format(noise))
+    weights = np.asarray(weights)
+
+    # Setup output matrix to hold all possible noises,
+    # but we'll only generate ones that are to be used
+    noise_ts = np.zeros((5, nscan))
+
+    if weights[0] != 0:
+        noise_ts[0, :] = system_noise(nscan=nscan, sigma=sigma,
+                                      noise_dist=noise_dist, dim=1).squeeze()
+    if weights[1] != 0:
+        noise_ts[1, :] = temporalnoise(nscan=nscan, sigma=sigma,
+                                       ar_coef=ar_coef, dim=1)
+    if weights[2] != 0:
+        noise_ts[2, :] = lowfreqdrift(nscan=nscan, freq=freq_low,
+                                            TR=TR, dim=1)
+    if weights[3] != 0:
+        noise_ts[3, :] = physnoise(nscan=nscan, sigma=sigma,
+                                   freq_heart=freq_heart,
+                                   freq_respiration=freq_resp, TR=TR, dim=1)
+    if weights[4] != 0:
+        noise_ts[4, :] = tasknoise(design=d_mat, sigma=sigma,
+                                   noise_dist=noise_dist, dim=1)
+
+    # Apply weights to noise types, sum and scale
+    noise_ts = noise_ts * weights.reshape((5, 1))
+    noise_ts = np.apply_along_axis(sum, 0, noise_ts)
+    noise_ts /= np.sqrt(np.sum(np.power(weights, 2)))
+
+    return bold + noise_ts - np.mean(noise_ts)

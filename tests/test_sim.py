@@ -564,3 +564,71 @@ class TestSimPrepTemporal(unittest.TestCase):
         with self.assertRaises(Exception):
             design = sim.simprepTemporal(total_time=100.5, TR=2)
 
+class TestSimTSfMRI(unittest.TestCase):
+    """Unit tests for sim.simTSfmri"""
+
+    def setUp(self):
+        self.design = design = sim.simprepTemporal(total_time=200,
+                                        onsets=[[1,41, 81, 121, 161],
+                                                [15, 55, 95, 135, 175]],
+                                        durations=[[20],[7]],
+                                        effect_sizes=[3,10], conv='double-gamma')
+
+    def test_no_design_throws_exception(self):
+        """Test simTSfmri without design throws exception"""
+        with self.assertRaises(Exception):
+            #pylint: disable=no-value-for-parameter
+            sim.simTSfmri()
+            #pylint: enable=no-value-for-parameter
+
+    def test_smoke_output_is_ndarray(self):
+        """Test simTSfmri output is ndarray [SMOKE]"""
+        design = sim.simTSfmri(design=self.design)
+        self.assertTrue(isinstance(design,np.ndarray))
+
+    def test_smoke_all_noise_types_work(self):
+        """Test simTSfmri all noise types work [SMOKE]"""
+        design = sim.simTSfmri(design=self.design, noise='none')
+        self.assertTrue(isinstance(design,np.ndarray))
+        design = sim.simTSfmri(design=self.design, noise='white')
+        self.assertTrue(isinstance(design,np.ndarray))
+        design = sim.simTSfmri(design=self.design, noise='temporal')
+        self.assertTrue(isinstance(design,np.ndarray))
+        design = sim.simTSfmri(design=self.design, noise='low-freq')
+        self.assertTrue(isinstance(design,np.ndarray))
+        design = sim.simTSfmri(design=self.design, noise='phys')
+        self.assertTrue(isinstance(design,np.ndarray))
+        design = sim.simTSfmri(design=self.design, noise='task-related')
+        self.assertTrue(isinstance(design,np.ndarray))
+        design = sim.simTSfmri(design=self.design, noise='mixture')
+        self.assertTrue(isinstance(design,np.ndarray))
+
+    def test_mixture_weight_handling(self):
+        """Test simTSfmri handles weight vector appropriately"""
+        with self.assertRaises(Exception):
+            sim.simTSfmri(design=self.design, noise='mixture', weights=[.1, .1])
+        with self.assertRaises(Exception):
+            sim.simTSfmri(design=self.design, noise='mixture', weights=[1, 1, 1, 1, 1])
+
+    def test_bad_noise_param_throws_exception(self):
+        """Test simTSfmri bad noise type throws exception"""
+        with self.assertRaises(Exception):
+            sim.simTSfmri(design=self.design, noise='bad')
+
+    def test_output_with_no_noise_one_cond_is_same_as_specifydesign(self):
+        """Test simTSfmri output is ndarray [SMOKE]"""
+        total_time=20
+        onsets=[[1]]
+        durations=[[2]]
+        effect_sizes=[3]
+        conv='double-gamma'
+        design = sim.simprepTemporal(total_time=total_time,
+                                     onsets=onsets,
+                                     durations=durations,
+                                     effect_sizes=effect_sizes, conv=conv, TR=2, accuracy=1)
+        simts = sim.simTSfmri(design=design, noise='none', base=0)
+        designts = sim.specifydesign(total_time=total_time,
+                                     onsets=onsets,
+                                     durations=durations,
+                                     effect_sizes=effect_sizes, conv=conv, TR=2, accuracy=1)
+        self.assertTrue(np.all(simts == designts.squeeze()))
