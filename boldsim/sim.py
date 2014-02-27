@@ -36,7 +36,7 @@ def _handle_dim(dim):
     return mydim
 
 def stimfunction(total_time=100, onsets=range(0, 99, 20),
-                 durations=10, effect_sizes=1, accuracy=1):
+                 durations=10, effect_sizes=1, accuracy=1, verify_params=True):
     """
     Generate a timeseries for a given set of onsets and durations
 
@@ -57,7 +57,8 @@ def stimfunction(total_time=100, onsets=range(0, 99, 20),
 
     accuracy = float(accuracy)
 
-    onsets, durations, effect_sizes = _verify_design_params(onsets,
+    if verify_params:
+        onsets, durations, effect_sizes = _verify_design_params(onsets,
                                                             durations,
                                                             effect_sizes)
 
@@ -163,7 +164,7 @@ def _verify_design_params(onsets, durations, effect_sizes):
 
 def specifydesign(total_time=100, onsets=range(0, 99, 20),
                  durations=10, effect_sizes=1, TR=2, accuracy=1,
-                 conv='none'):
+                 conv='none', verify_params=True):
     """
     Generate a model hemodynamic response for given onsets and durations
 
@@ -193,7 +194,8 @@ def specifydesign(total_time=100, onsets=range(0, 99, 20),
     if not output_len.is_integer():
         raise Exception("total_time is not divisible by TR")
 
-    onsets, durations, effect_sizes = _verify_design_params(onsets,
+    if verify_params:
+        onsets, durations, effect_sizes = _verify_design_params(onsets,
                                                             durations,
                                                             effect_sizes)
 
@@ -204,7 +206,8 @@ def specifydesign(total_time=100, onsets=range(0, 99, 20),
     for cond, (onset, dur, effect) in enumerate(zip(onsets,
                                                     durations,
                                                     effect_sizes)):
-        stim_timeseries = stimfunction(total_time, onset, dur, effect, accuracy)
+        stim_timeseries = stimfunction(total_time, [onset], [dur], [effect], accuracy,
+                                       verify_params=False)
 
         if conv == 'none':
             design_out[cond, :] = stim_timeseries[sample_idx]
