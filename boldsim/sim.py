@@ -36,7 +36,7 @@ def _handle_dim(dim):
     return mydim
 
 def stimfunction(total_time=100, onsets=range(0, 99, 20),
-                 durations=10, accuracy=1):
+                 durations=10, effect_sizes=1, accuracy=1):
     """
     Generate a timeseries for a given set of onsets and durations
 
@@ -57,23 +57,20 @@ def stimfunction(total_time=100, onsets=range(0, 99, 20),
 
     accuracy = float(accuracy)
 
-    # Make sure onsets is an ndarray
-    onsets = _to_ndarray(onsets)
+    onsets, durations, effect_sizes = _verify_design_params(onsets,
+                                                            durations,
+                                                            effect_sizes)
 
-    # Make sure durations is an ndarray the same length as onsets
-    durations = _to_ndarray(durations)
-    if len(durations) == 1:
-        durations = durations.repeat(len(onsets))
-    if len(durations) != len(onsets):
-        raise Exception("Stim durations and onsets lists " +
-                        "need to be same length")
+    if len(onsets) > 1:
+        raise Exception('stimfunction only works for a single condition')
 
-    if np.max(onsets+durations) >= total_time:
+    # Warn if events go past end of time
+    if np.max(onsets[0]+durations[0]) >= total_time:
         warn('Onsets/durations go past total_time. ' +
              'Some events will be truncated/missing')
 
-    resampled_onsets = onsets/accuracy
-    resampled_durs = durations/accuracy
+    resampled_onsets = onsets[0]/accuracy
+    resampled_durs = _to_ndarray(durations[0])/accuracy
 
     output_len = total_time/accuracy
     if not output_len.is_integer():
@@ -83,10 +80,53 @@ def stimfunction(total_time=100, onsets=range(0, 99, 20),
 
     output_series = np.zeros(int(output_len))
 
-    for onset, dur in zip(resampled_onsets, resampled_durs):
-        output_series[onset:(onset+dur)] = 1
+    for onset, dur, effect in zip(resampled_onsets.astype(int),
+                                  resampled_durs.astype(int),
+                                  effect_sizes[0]):
+        output_series[onset:(onset+dur)] = effect
 
     return output_series
+
+def _match_to_onsets(onsets, arr):
+    """
+    Make array match onsets
+    """
+
+    nconds = len(onsets)
+    if isinstance(arr, Number):
+        # We only got a single number, so assume it is the dur for everything
+        arr = [[arr] * len(onsets[x]) for x in range(nconds)]
+    elif len(arr) == 1:
+        # We got a list with a single number,
+        # so assume it is the dur for everything
+        arr = [arr * len(onsets[x]) for x in range(nconds)]
+    else:
+        # We got a possibly complex list, deal with it accordingly
+
+        # Check if we are only dealing with a single list
+        if nconds == 1:
+            if len(arr) == len(onsets[0]):
+                arr = [arr]
+            else:
+                raise Exception("Num of durs does not match num of onsets")
+
+        if not len(arr) == nconds:
+            raise Exception("Num of dur lists should match num of onsets")
+
+        for cond, durs in enumerate(arr):
+            if isinstance(durs, list):
+                # If it's just 1 item, replicate it to match number on onsets
+                if len(durs) == 1:
+                    arr[cond] = durs * len(onsets[cond])
+
+                # If it's more than 1 item, make sure it
+                # matches number of onsets
+                elif not len(durs) == len(onsets[cond]):
+                    raise Exception("Num of durs doesn't match num of \
+                                     onsets for cond {}".format(cond))
+            else:
+                arr[cond] = [durs] * len(onsets[cond])
+    return arr
 
 def _verify_design_params(onsets, durations, effect_sizes):
     """
@@ -95,40 +135,14 @@ def _verify_design_params(onsets, durations, effect_sizes):
 
     # Check to see how if we got a list of onset lists, or just one list
     if isinstance(onsets, list) and any(isinstance(x, list) for x in onsets):
-        nconds = len(onsets)
+        # See if we have a list of lists, or just a list
         onsets = [_to_ndarray(x) for x in onsets]
     else:
-        nconds = 1
-        onsets = [onsets]
+        # We got a single duration, make into a list
+        onsets = [_to_ndarray(onsets)]
 
-    # Check to make sure durations make sense with onsets
-    if isinstance(durations, Number):
-        # We only got a single number, so assume it is the dur for everything
-        durations = [[durations] for x in range(nconds)]
-    elif len(durations) == 1:
-        durations = [durations for x in range(nconds)]
-        # Currently relying on stimfunction to make sure durations matches
-    else:
-        if any(isinstance(x, list) for x in durations):
-            # This is multiple lists, check that each matches or is single item
-            if not len(durations) == nconds:
-                raise Exception("Num of onset lists and dur lists should match")
-        else:
-            # This is a single list, make sure it matches the number of onsets
-            if nconds > 1:
-                raise Exception("Num of onset lists and dur lists should match")
-            if not len(durations) == len(onsets[0]):
-                raise Exception("Num of onset times and dur times should match")
-
-    # Check to make sure effect sizes make sense with onsets
-    if isinstance(effect_sizes, Number):
-        # We only got a single number, so assume it is the dur for everything
-        effect_sizes = [[effect_sizes] for x in range(nconds)]
-    elif len(effect_sizes) == 1:
-        effect_sizes = [effect_sizes for x in range(nconds)]
-    else:
-        if not len(effect_sizes) == len(onsets):
-            raise Exception("Num of onset lists and effect sizes should match")
+    durations = _match_to_onsets(onsets, durations)
+    effect_sizes = _match_to_onsets(onsets, effect_sizes)
 
     return (onsets, durations, effect_sizes)
 
@@ -172,20 +186,19 @@ def specifydesign(total_time=100, onsets=range(0, 99, 20),
     sample_idx = np.round(np.arange(0, total_time/accuracy, TR/accuracy))
     sample_idx = np.asarray(sample_idx, dtype=np.int)
 
-    for cond, (onset, dur) in enumerate(zip(onsets, durations)):
-        stim_timeseries = stimfunction(total_time, onset, dur, accuracy)
+    for cond, (onset, dur, effect) in enumerate(zip(onsets,
+                                                    durations,
+                                                    effect_sizes)):
+        stim_timeseries = stimfunction(total_time, onset, dur, effect, accuracy)
 
         if conv == 'none':
-            design_out[cond, :] = stim_timeseries[sample_idx] * \
-                                  effect_sizes[cond]
+            design_out[cond, :] = stim_timeseries[sample_idx]
 
         if conv in ['gamma', 'double-gamma']:
             x = np.arange(0, total_time, accuracy)
             hrf = gamma if conv == 'gamma' else double_gamma
             out = np.convolve(stim_timeseries, hrf(x),
                               mode='full')[0:(len(stim_timeseries))]
-            out /= np.max(out, axis=0)
-            out *= effect_sizes[cond]
             design_out[cond, :] = out[sample_idx]
 
     return design_out
@@ -524,6 +537,7 @@ def simprepTemporal(total_time=100, onsets=range(0, 99, 20),
     Raises:
         Exception
     """
+
     if not isinstance(total_time, Number):
         raise Exception("Argument total_time should be a number")
 

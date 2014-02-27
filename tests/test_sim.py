@@ -4,6 +4,161 @@ import numpy as np
 
 from boldsim import sim
 
+class TestHelperVerifyDesignParams(unittest.TestCase):
+    """Unit tests for sim._verify_design_params"""
+
+    def assert_all_lists(self,onsets,durations,effect_sizes):
+        self.assertTrue(isinstance(onsets, list))
+        self.assertTrue(isinstance(durations, list))
+        self.assertTrue(isinstance(effect_sizes, list))
+
+    def test_smoke_output_is_three_lists(self):
+        """Test _verify_design_params output is reasonable [SMOKE]"""
+        onsets, durations, effect_sizes = sim._verify_design_params(
+                                  onsets=1,
+                                  durations=1,
+                                  effect_sizes=1)
+        self.assert_all_lists(onsets,durations,effect_sizes)
+        self.assertTrue(onsets == [[1]])
+        self.assertTrue(durations == [[1]])
+        self.assertTrue(effect_sizes == [[1]])
+
+
+    def test_with_single_duration_as_num_is_ok(self):
+        """Test _verify_design_params handles single dur as num"""
+        onsets, durations, effect_sizes = sim._verify_design_params(
+                                  onsets=[10, 12, 14],
+                                  durations=1,
+                                  effect_sizes=[1, 1, 1])
+        self.assert_all_lists(onsets,durations,effect_sizes)
+        self.assertTrue(np.all(onsets[0] == [10, 12, 14]))
+        self.assertTrue(np.all(durations[0] == [1, 1, 1]))
+        self.assertTrue(effect_sizes == [[1, 1, 1]])
+
+    def test_with_single_duration_as_list_is_ok(self):
+        """Test _verify_design_params handles single dur as list"""
+        onsets, durations, effect_sizes = sim._verify_design_params(
+                                  onsets=[10, 12, 14],
+                                  durations=[1],
+                                  effect_sizes=[1, 1, 1])
+        self.assert_all_lists(onsets,durations,effect_sizes)
+        self.assertTrue(np.all(onsets[0] == [10, 12, 14]))
+        self.assertTrue(np.all(durations[0] == [1, 1, 1]))
+        self.assertTrue(effect_sizes == [[1, 1, 1]])
+
+    def test_with_single_duration_as_list_is_ok_in_multiple_cond(self):
+        """Test _verify_design_params handles single dur as list with multiple conds"""
+        onsets, durations, effect_sizes = sim._verify_design_params(
+                                  onsets=[[10, 12, 14],[10, 10]],
+                                  durations=[1],
+                                  effect_sizes=[[1, 1, 1], [1, 1]])
+        self.assert_all_lists(onsets,durations,effect_sizes)
+        self.assertTrue(np.all(onsets[0] == [10, 12, 14]))
+        self.assertTrue(np.all(durations[0] == [1, 1, 1]))
+        self.assertTrue(np.all(effect_sizes[0] == [1, 1, 1]))
+        self.assertTrue(np.all(onsets[1] == [10, 10]))
+        self.assertTrue(np.all(durations[1] == [1, 1]))
+        self.assertTrue(np.all(effect_sizes[1] == [1, 1]))
+
+    def test_with_single_duration_as_num_is_ok_in_multiple_cond(self):
+        """Test _verify_design_params handles single dur as num with multiple conds"""
+        onsets, durations, effect_sizes = sim._verify_design_params(
+                                  onsets=[[10, 12, 14],[10, 10]],
+                                  durations=1,
+                                  effect_sizes=[[1, 1, 1], [1, 1]])
+        self.assert_all_lists(onsets,durations,effect_sizes)
+        self.assertTrue(np.all(onsets[0] == [10, 12, 14]))
+        self.assertTrue(np.all(durations[0] == [1, 1, 1]))
+        self.assertTrue(np.all(onsets[1] == [10, 10]))
+        self.assertTrue(np.all(durations[1] == [1, 1]))
+
+    def test_with_complex_single_durations_as_num_is_ok_in_multiple_cond(self):
+        """Test _verify_design_params handles complex single durs as list with multiple conds"""
+        onsets, durations, effect_sizes = sim._verify_design_params(
+                                  onsets=[[10, 12, 14],[10, 10]],
+                                  durations=[1,[2]],
+                                  effect_sizes=[[1, 1, 1], [1, 1]])
+        self.assert_all_lists(onsets,durations,effect_sizes)
+        self.assertTrue(np.all(onsets[0] == [10, 12, 14]))
+        self.assertTrue(np.all(durations[0] == [1, 1, 1]))
+        self.assertTrue(np.all(onsets[1] == [10, 10]))
+        self.assertTrue(np.all(durations[1] == [2, 2]))
+
+    def test_with_complex_one_single_durations_as_num_is_ok_in_multiple_cond(self):
+        """Test _verify_design_params handles complex one single durs as list with multiple conds"""
+        onsets, durations, effect_sizes = sim._verify_design_params(
+                                  onsets=[[10, 12, 14],[10, 10]],
+                                  durations=[1,[2, 3]],
+                                  effect_sizes=[[1, 1, 1], [1, 1]])
+        self.assert_all_lists(onsets,durations,effect_sizes)
+        self.assertTrue(np.all(onsets[0] == [10, 12, 14]))
+        self.assertTrue(np.all(durations[0] == [1, 1, 1]))
+        self.assertTrue(np.all(onsets[1] == [10, 10]))
+        self.assertTrue(np.all(durations[1] == [2, 3]))
+
+    def test_with_complex_one_single_durations_as_num_throws_exception_in_multiple_cond(self):
+        """Test _verify_design_params throws exception with complex one single durs with multiple conds"""
+        with self.assertRaises(Exception):
+            onsets, durations, effect_sizes = sim._verify_design_params(
+                                  onsets=[[10, 12, 14],[10, 10]],
+                                  durations=[1,[2, 3, 4]],
+                                  effect_sizes=[[1, 1, 1], [1, 1]])
+
+    def test_with_non_match_duration_single_list_throws_exception(self):
+        """Test _verify_design_params throws exception on single nonmatch list"""
+        with self.assertRaises(Exception):
+            onsets, durations, effect_sizes = sim._verify_design_params(
+                                  onsets=[10, 12, 14],
+                                  durations=[1, 2],
+                                  effect_sizes=[1, 1, 1])
+
+    def test_with_non_match_effects_single_list_throws_exception(self):
+        """Test _verify_design_params throws exception on single nonmatch list"""
+        with self.assertRaises(Exception):
+            onsets, durations, effect_sizes = sim._verify_design_params(
+                                  onsets=[10, 12, 14],
+                                  durations=[1, 2, 1],
+                                  effect_sizes=[1, 1])
+
+    def test_with_matching_lists_is_ok(self):
+        """Test _verify_design_params handles matching lists"""
+        onsets, durations, effect_sizes = sim._verify_design_params(
+                                  onsets=[10, 12, 14],
+                                  durations=[1, 2, 3],
+                                  effect_sizes=[4, 5, 6])
+        self.assert_all_lists(onsets,durations,effect_sizes)
+        self.assertTrue(np.all(onsets[0] == [10, 12, 14]))
+        self.assertTrue(np.all(durations[0] == [1, 2, 3]))
+        self.assertTrue(np.all(effect_sizes[0] == [4, 5, 6]))
+
+    def test_with_matching_nested_lists_is_ok(self):
+        """Test _verify_design_params handles matching nested lists"""
+        onsets, durations, effect_sizes = sim._verify_design_params(
+                                  onsets=[[10, 12, 14],[1,2]],
+                                  durations=[[1, 2, 3], [1, 1]],
+                                  effect_sizes=[[1, 1, 1],[1,1]])
+        self.assert_all_lists(onsets,durations,effect_sizes)
+        self.assertTrue(np.all(onsets[0] == [10, 12, 14]))
+        self.assertTrue(np.all(durations[0] == [1, 2, 3]))
+        self.assertTrue(np.all(onsets[1] == [1, 2]))
+        self.assertTrue(np.all(durations[1] == [1, 1]))
+
+    def test_with_non_match_duration_nested_list_throws_exception(self):
+        """Test _verify_design_params throws exception on bad dur list"""
+        with self.assertRaises(Exception):
+            onsets, durations, effect_sizes = sim._verify_design_params(
+                                  onsets=[[10, 12, 14],[1,2]],
+                                  durations=[[1, 2, 3], [1, 1, 3]],
+                                  effect_sizes=[[1, 1, 1],[1,1]])
+
+    def test_with_non_match_effect_nested_list_throws_exception(self):
+        """Test _verify_design_params throws exception on bad effect list"""
+        with self.assertRaises(Exception):
+            onsets, durations, effect_sizes = sim._verify_design_params(
+                                  onsets=[[10, 12, 14],[1,2]],
+                                  durations=[[1, 2, 3], [1, 1]],
+                                  effect_sizes=[[1, 1, 1],[1,1, 3]])
+
 class TestStimfunction(unittest.TestCase):
     """Unit tests for sim.stimfunction"""
 
@@ -31,6 +186,12 @@ class TestStimfunction(unittest.TestCase):
                               accuracy=.1)
         self.assertTrue(len(d) == 100/.1)
 
+    def test_with_different_effect_sizes(self):
+        """Test stimfunction with different_effect_sizes"""
+        s = sim.stimfunction(8, [0, 4],
+                             2, [2, 3], 1)
+        self.assertTrue(np.all(s == [2, 2, 0, 0, 3, 3, 0, 0]))
+
     def test_with_acc_of_one(self):
         """Test stimfunction with accuracy=1"""
         s = sim.stimfunction(self.total_time, self.onsets,
@@ -40,26 +201,15 @@ class TestStimfunction(unittest.TestCase):
     def test_with_acc_of_half(self):
         """Test stimfunction with accuracy=.5"""
         s = sim.stimfunction(self.total_time, self.onsets,
-                             self.duration, .5)
+                             self.duration, accuracy=.5)
         self.assertTrue(np.all(s == [1, 1, 1, 1, 0, 0, 0, 0,
                                      1, 1, 1, 1, 0, 0, 0, 0]))
 
     def test_with_acc_of_two(self):
         """Test stimfunction with accuracy=2"""
         s = sim.stimfunction(self.total_time, self.onsets,
-                             self.duration, 2)
+                             self.duration, accuracy=2)
         self.assertTrue(np.all(s == [1, 0, 1, 0]))
-
-    def test_onset_exceptions(self):
-        """Test stimfunction throws exception with non-matching onsets and durs"""
-        # We need to have matching length lists for durations and onsets
-        s = sim.stimfunction(10,
-                             onsets=[1, 2, 3],
-                             durations=[1, 2, 1], accuracy=1)
-        with self.assertRaises(Exception):
-            s = sim.stimfunction(10,
-                                 onsets=[1, 2, 3],
-                                 durations=[1, 2], accuracy=1)
 
     def test_truncation_warning(self):
         """Test stimfunction warns user if total_time is not divisible by accuracy"""
@@ -78,7 +228,7 @@ class TestStimfunction(unittest.TestCase):
             d = sim.stimfunction(total_time=10, onsets=[9], durations=2,
                                  accuracy=1.0) # Warn
             d = sim.stimfunction(total_time=10, onsets=[8], durations=1,
-                                 accuracy=1.0) # Don't warn
+                                 accuracy=1.0) # Don't Warn
             self.assertTrue(len(w) == 2)
 
 class TestSpecifyDesign(unittest.TestCase):
@@ -90,63 +240,6 @@ class TestSpecifyDesign(unittest.TestCase):
         self.onsets = [0,49]
         self.duration = 1
         self.acc = 1
-
-    def test_non_matching_onsets_and_single_dur_is_ok(self):
-        """Test specifydesign doesn't throw exception with non-matched onsets + single dur"""
-        d = sim.specifydesign(onsets=[1, 2, 3, 4], durations=2)
-
-    def test_non_matching_onsets_and_single_effect_size_is_ok(self):
-        """Test specifydesign doesn't throw exception with non-matched onsets + single effect size"""
-        d = sim.specifydesign(onsets=[1, 2, 3, 4], effect_sizes=2)
-
-    def test_non_matching_onsets_and_single_dur_in_list_is_ok(self):
-        """Test specifydesign doesn't throw exception with non-matched onsets + single dur in list"""
-        d = sim.specifydesign(onsets=[1, 2, 3, 4], durations=[2])
-
-    def test_non_matching_onsets_and_single_effect_size_in_list_is_ok(self):
-        """Test specifydesign doesn't throw exception with non-matched onsets + single effect size in list"""
-        d = sim.specifydesign(onsets=[1, 2, 3, 4], effect_sizes=[2])
-
-    def test_matching_onsets_and_dur_list_is_ok(self):
-        """Test specifydesign doesn't throw exception with matching onsets + dur lists"""
-        d = sim.specifydesign(onsets=[1, 2, 3, 4], durations=[2, 3, 2, 3])
-
-    def test_matching_onsets_and_effect_size_list_is_ok(self):
-        """Test specifydesign doesn't throw exception with matching onsets + effect_size lists"""
-        d = sim.specifydesign(onsets=[[1, 2],[3, 4]], effect_sizes=[2, 3])
-
-    def test_non_matching_onsets_and_durs_throws_exception(self):
-        """Test specifydesign throws exception with non-matched onsets/dur lists"""
-        with self.assertRaises(Exception):
-            d = sim.specifydesign(onsets=[1, 2, 3, 4], durations=[1, 2])
-
-    def test_non_matching_onsets_and_effect_sizes_throws_exception(self):
-        """Test specifydesign throws exception with non-matched onsets/effect_sizes lists"""
-        with self.assertRaises(Exception):
-            d = sim.specifydesign(onsets=[[1, 2],[3], [4]], effect_sizes=[1, 2])
-
-    def test_nested_non_matching_onsets_and_durs_throws_exception(self):
-        """Test specifydesign throws exception with nested non-matched onsets/dur lists"""
-        with self.assertRaises(Exception):
-            d = sim.specifydesign(onsets=[[1, 2],[1,2,3]], durations=[[1, 2],[1,2]])
-
-    def test_nested_non_matching_onsets_and_durs_len_throws_exception(self):
-        """Test specifydesign throws exception with nested non-matched onsets/dur len lists"""
-        with self.assertRaises(Exception):
-            d = sim.specifydesign(onsets=[[1, 2],[1, 2, 3],[1,2,3]], durations=[[1, 2],[1,2]])
-
-    def test_nested_non_matching_onsets_and_durs_nonnest_throws_exception(self):
-        """Test specifydesign throws exception with nested non-matched onsets/single dur lists"""
-        with self.assertRaises(Exception):
-            d = sim.specifydesign(onsets=[[1, 2],[1, 2, 3]], durations=[1, 2])
-
-    def test_nested_matching_onsets_and_durs_dont_throw_exception(self):
-        """Test specifydesign doesn't throw exception with nested matching onsets/dur lists"""
-        d = sim.specifydesign(onsets=[[1, 2],[1,2,3]], durations=[[1, 2],[1,2,3]])
-
-    def test_nested_matching_onsets_and_single_durs_dont_throw_exception(self):
-        """Test specifydesign doesn't throw exception with nested matching onsets + single dur in lists"""
-        d = sim.specifydesign(onsets=[[1, 2],[1,2,3]], durations=[[1],[1,2,3]])
 
     def test_non_numeric_total_time_throws_exception(self):
         """Test specifydesign throws exception with non-numeric total_time"""
@@ -183,7 +276,6 @@ class TestSpecifyDesign(unittest.TestCase):
         d = sim.specifydesign(self.total_time, self.onsets, self.duration,
                               accuracy=1, TR=1, conv='gamma')
         g = sim.gamma(np.arange(30))
-        g /= np.max(g)
         g = np.round(g,decimals=5)
         self.assertTrue(np.all(g == np.round(d[0,0:30],decimals=5)))
         self.assertTrue(np.all(g == np.round(d[0,49:79],decimals=5)))
@@ -193,7 +285,6 @@ class TestSpecifyDesign(unittest.TestCase):
         d = sim.specifydesign(self.total_time, self.onsets, self.duration,
                               accuracy=1, TR=1, conv='double-gamma')
         g = sim.double_gamma(np.arange(30))
-        g /= np.max(g)
         g = np.round(g,decimals=5)
         self.assertTrue(np.all(g == np.round(d[0,0:30],decimals=5)))
         self.assertTrue(np.all(g == np.round(d[0,49:79],decimals=5)))
@@ -218,8 +309,8 @@ class TestSpecifyDesign(unittest.TestCase):
         s1 = sim.stimfunction(onsets=onsets[0], durations=duration, accuracy=1)
         s2 = sim.stimfunction(onsets=onsets[1], durations=duration, accuracy=1)
         d = sim.specifydesign(onsets=onsets, durations=duration, effect_sizes=effect_sizes, conv='none')
-        self.assertTrue(np.all(s1[::2]*effect_sizes[0] == d[0,:]))
-        self.assertTrue(np.all(s2[::2]*effect_sizes[1] == d[1,:]))
+        self.assertTrue(np.all(s1[::2]*effect_sizes[0][0] == d[0,:]))
+        self.assertTrue(np.all(s2[::2]*effect_sizes[1][0] == d[1,:]))
 
     def test_multiple_with_gamma(self):
         """Test specifydesign for 2 conditions with gamma convolution"""
@@ -227,30 +318,10 @@ class TestSpecifyDesign(unittest.TestCase):
         duration = 1
         d = sim.specifydesign(onsets=onsets, durations=duration, accuracy=1, TR=1, conv='gamma')
         g = sim.gamma(np.arange(30))
-        g /= np.max(g)
         g = np.round(g,decimals=5)
         self.assertTrue(np.all(g == np.round(d[0,0:30],decimals=5)))
         self.assertTrue(np.all(g == np.round(d[0,50:80],decimals=5)))
         self.assertTrue(np.all(g == np.round(d[1,25:55],decimals=5)))
-
-    def test_multiple_with_gamma_diff_effect_sizes(self):
-        """Test specifydesign for 2 conditions with diff effect sizes with gamma convolution"""
-        onsets = [[0,50],[25]]
-        effect_sizes = [1,2]
-        duration = 1
-        d = sim.specifydesign(onsets=onsets, durations=duration, effect_sizes=effect_sizes,
-                              accuracy=1, TR=1, conv='gamma')
-        g = sim.gamma(np.arange(30))
-        g /= np.max(g)
-        g *= effect_sizes[0]
-        g = np.round(g,decimals=5)
-        g2 = sim.gamma(np.arange(30))
-        g2 /= np.max(g2)
-        g2 *= effect_sizes[1]
-        g2 = np.round(g2,decimals=5)
-        self.assertTrue(np.all(g == np.round(d[0,0:30],decimals=5)))
-        self.assertTrue(np.all(g == np.round(d[0,50:80],decimals=5)))
-        self.assertTrue(np.all(g2 == np.round(d[1,25:55],decimals=5)))
 
 class TestSystemNoise(unittest.TestCase):
     """Unit tests for sim.systemnoise"""
@@ -410,17 +481,17 @@ class TestTemporalNoise(unittest.TestCase):
     """Unit tests for sim.temporalnoise"""
 
     def test_default_returns_expected(self):
-        """Test temporalnoise default arguments"""
+        """Test temporalnoise default arguments [SMOKE]"""
         noise = sim.temporalnoise()
         self.assertTrue(noise.shape == (1,200))
 
     def test_handles_ar_coeff_list(self):
-        """Test temporalnoise default arguments"""
+        """Test temporalnoise with ar_coef arguments [SMOKE]"""
         noise = sim.temporalnoise(ar_coef=[.2, .3, .2])
         self.assertTrue(noise.shape == (1,200))
 
     def test_handles_reshape(self):
-        """Test temporalnoise default arguments"""
+        """Test temporalnoise provides sane output shape [SMOKE]"""
         noise = sim.temporalnoise(nscan=150, ar_coef=[.2, .3, .2], dim=[3, 3])
         self.assertTrue(noise.shape == (3,3,150))
 
