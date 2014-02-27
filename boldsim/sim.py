@@ -87,10 +87,22 @@ def stimfunction(total_time=100, onsets=range(0, 99, 20),
 
     return output_series
 
-def _match_to_onsets(onsets, arr):
+def _slice_only_if_list(arg):
     """
-    Make array match onsets
+    Return a copied slice if given a list, otherwise return item
     """
+    if isinstance(arg, list):
+        return arg[:]
+    else:
+        return arg
+
+
+def _match_to_onsets(onsets, arr_to_fix):
+    """
+    Return properly validated and formatted array to match onsets
+    """
+
+    arr = _slice_only_if_list(arr_to_fix)
 
     nconds = len(onsets)
     if isinstance(arr, Number):
@@ -130,21 +142,24 @@ def _match_to_onsets(onsets, arr):
 
 def _verify_design_params(onsets, durations, effect_sizes):
     """
-    Make sure the onsets, durations, and effect_sizes are sane
+    Return properly formatted copies of onsets, durations and effect_sizes
     """
+    onsets_cp = _slice_only_if_list(onsets)
+    durations_cp = _slice_only_if_list(durations)
+    effect_sizes_cp = _slice_only_if_list(effect_sizes)
 
     # Check to see how if we got a list of onset lists, or just one list
-    if isinstance(onsets, list) and any(isinstance(x, list) for x in onsets):
+    if isinstance(onsets_cp, list) and any(isinstance(x, list) for x in onsets_cp):
         # See if we have a list of lists, or just a list
-        onsets = [_to_ndarray(x) for x in onsets]
+        onsets_cp = [_to_ndarray(x) for x in onsets_cp]
     else:
         # We got a single duration, make into a list
-        onsets = [_to_ndarray(onsets)]
+        onsets_cp = [_to_ndarray(onsets_cp)]
 
-    durations = _match_to_onsets(onsets, durations)
-    effect_sizes = _match_to_onsets(onsets, effect_sizes)
+    durations_cp = _match_to_onsets(onsets_cp, durations_cp)
+    effect_sizes_cp = _match_to_onsets(onsets_cp, effect_sizes_cp)
 
-    return (onsets, durations, effect_sizes)
+    return (onsets_cp, durations_cp, effect_sizes_cp)
 
 def specifydesign(total_time=100, onsets=range(0, 99, 20),
                  durations=10, effect_sizes=1, TR=2, accuracy=1,

@@ -309,8 +309,8 @@ class TestSpecifyDesign(unittest.TestCase):
         s1 = sim.stimfunction(onsets=onsets[0], durations=duration, accuracy=1)
         s2 = sim.stimfunction(onsets=onsets[1], durations=duration, accuracy=1)
         d = sim.specifydesign(onsets=onsets, durations=duration, effect_sizes=effect_sizes, conv='none')
-        self.assertTrue(np.all(s1[::2]*effect_sizes[0][0] == d[0,:]))
-        self.assertTrue(np.all(s2[::2]*effect_sizes[1][0] == d[1,:]))
+        self.assertTrue(np.all(s1[::2]*effect_sizes[0] == d[0,:]))
+        self.assertTrue(np.all(s2[::2]*effect_sizes[1] == d[1,:]))
 
     def test_multiple_with_gamma(self):
         """Test specifydesign for 2 conditions with gamma convolution"""
