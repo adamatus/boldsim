@@ -104,6 +104,14 @@ class TestHelperVerifyDesignParams(unittest.TestCase):
                                   durations=[1,[2, 3, 4]],
                                   effect_sizes=[[1, 1, 1], [1, 1]])
 
+    def test_with_too_many_durations_lists_throws_exception_in_multiple_cond(self):
+        """Test _verify_design_params throws exception with too many dur lists"""
+        with self.assertRaises(Exception):
+            onsets, durations, effect_sizes = sim._verify_design_params(
+                                  onsets=[[10, 12, 14],[10, 10]],
+                                  durations=[1,[2, 3, 4],[1, 2, 3]],
+                                  effect_sizes=[[1, 1, 1], [1, 1]])
+
     def test_with_non_match_duration_single_list_throws_exception(self):
         """Test _verify_design_params throws exception on single nonmatch list"""
         with self.assertRaises(Exception):
@@ -175,6 +183,11 @@ class TestStimfunction(unittest.TestCase):
         d = sim.stimfunction(total_time=100.5, accuracy=0.5)
         with self.assertRaises(Exception):
             d = sim.stimfunction(total_time=[100.5])
+
+    def test_throws_exception_on_multiple_conditions(self):
+        """Test stimfunction throws exception on multiple conditions"""
+        with self.assertRaises(Exception):
+            d = sim.stimfunction(total_time=100, onsets=[[1,2],[3,4]])
 
     def test_output_is_correct_length(self):
         """Test stimfunction returns correct length output"""

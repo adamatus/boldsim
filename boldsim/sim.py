@@ -150,7 +150,8 @@ def _verify_design_params(onsets, durations, effect_sizes):
     effect_sizes_cp = _slice_only_if_list(effect_sizes)
 
     # Check to see how if we got a list of onset lists, or just one list
-    if isinstance(onsets_cp, list) and any(isinstance(x, list) for x in onsets_cp):
+    if isinstance(onsets_cp, list) and \
+       any(isinstance(x, list) for x in onsets_cp):
         # See if we have a list of lists, or just a list
         onsets_cp = [_to_ndarray(x) for x in onsets_cp]
     else:
@@ -206,8 +207,8 @@ def specifydesign(total_time=100, onsets=range(0, 99, 20),
     for cond, (onset, dur, effect) in enumerate(zip(onsets,
                                                     durations,
                                                     effect_sizes)):
-        stim_timeseries = stimfunction(total_time, [onset], [dur], [effect], accuracy,
-                                       verify_params=False)
+        stim_timeseries = stimfunction(total_time, [onset], [dur], [effect],
+                                       accuracy, verify_params=False)
 
         if conv == 'none':
             design_out[cond, :] = stim_timeseries[sample_idx]
