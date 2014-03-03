@@ -573,6 +573,16 @@ class TestSimPrepSpatial(unittest.TestCase):
         self.assertTrue(isinstance(regions,list))
         self.assertTrue(np.all([isinstance(region,dict) for region in regions]))
 
+    def test_throws_exception_on_bad_fade(self):
+        """Test simprepSpatial throws exception on bad fade value"""
+        sim.simprepSpatial(fading=.5)
+        sim.simprepSpatial(fading=0)
+        sim.simprepSpatial(fading=1.0)
+        with self.assertRaises(Exception):
+            sim.simprepSpatial(fading=-1.0)
+        with self.assertRaises(Exception):
+            sim.simprepSpatial(fading=1.5)
+
     def test_regions_should_be_int(self):
         """Test simprepSpatial regions arg should be int"""
         regions = sim.simprepSpatial(regions=1)

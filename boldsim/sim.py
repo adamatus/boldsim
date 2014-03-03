@@ -163,6 +163,40 @@ def _verify_design_params(onsets, durations, effect_sizes):
 
     return (onsets_cp, durations_cp, effect_sizes_cp)
 
+def _verify_spatial_params(regions, coord, radius, form, fading):
+    """
+    Return properly formatted copies of coord, radius, form, fading
+    """
+    coord_cp = _slice_only_if_list(coord)
+    radius_cp = _slice_only_if_list(radius)
+    form_cp = _slice_only_if_list(form)
+    fading_cp = _slice_only_if_list(fading)
+
+    if not isinstance(coord_cp, list):
+        raise Exception("Argument coord should be a list of lists")
+
+    # If we got single list (rather than a nested list), go ahead and nest
+    if np.all([isinstance(item, Number) for item in coord_cp]):
+        coord_cp = [coord_cp]
+
+    coord_cp = _match_to_regions(regions, coord_cp, list)
+    radius_cp = _match_to_regions(regions, radius_cp, Number)
+    form_cp = _match_to_regions(regions, form_cp, str)
+    fading_cp = _match_to_regions(regions, fading_cp, Number)
+
+    # Verify that fading values are within 0 and 1
+    if not np.all([(fade >= 0) & (fade <= 1) for fade in fading_cp]):
+        raise Exception("Fading values must be between 0 and 1, inclusive")
+
+    if not np.all([form_item in ['cube', 'sphere', 'manual'] \
+                    for form_item in form_cp]):
+        raise Exception("Unknown spatial method specified: {}".format(form_cp))
+
+    if not np.all([len(item) == len(coord_cp[0]) for item in coord_cp]):
+        raise Exception("All coordinates must be of the same dimensions")
+
+    return (coord_cp, radius_cp, form_cp, fading_cp)
+
 def specifydesign(total_time=100, onsets=range(0, 99, 20),
                  durations=10, effect_sizes=1, TR=2, accuracy=1,
                  conv='none', verify_params=True):
@@ -581,6 +615,25 @@ def simprepTemporal(total_time=100, onsets=range(0, 99, 20),
 
     return out
 
+def _match_to_regions(nreg, item_list, expected_type):
+    """
+    Return properly validated and formatted list to match number of regions
+    """
+    if not isinstance(item_list, list):
+        item_list = [item_list]
+
+    if not len(item_list) == nreg:
+        if len(item_list) == 1:
+            # Replicate single item list so it matches number of regions
+            item_list *= nreg
+        else:
+            raise Exception("Argument coord should be a list of lists")
+
+    if not np.all([isinstance(item, expected_type) for item in item_list]):
+        raise Exception("Argument of unexpected type included in list")
+
+    return item_list
+
 def simprepSpatial(regions=1, coord=None, radius=1, form='cube', fading=0):
     """"
     Verify and package simulation spatial parameters
@@ -602,7 +655,6 @@ def simprepSpatial(regions=1, coord=None, radius=1, form='cube', fading=0):
     Raises:
         Exception
     """
-
     if coord is None:
         coord = [0, 0]
 
@@ -610,44 +662,8 @@ def simprepSpatial(regions=1, coord=None, radius=1, form='cube', fading=0):
         raise Exception("Argument regions should be an integer")
     regions = int(regions)
 
-
-    if not isinstance(coord, list):
-        raise Exception("Argument coord should be a list of lists")
-
-    # If we got single list (rather than a nested list), go ahead and nest
-    if np.all([isinstance(item, Number) for item in coord]):
-        coord = [coord]
-
-    def _match_to_regions(nreg, item_list, expected_type):
-        """
-        Return properly validated and formatted list to match number of regions
-        """
-        if not isinstance(item_list, list):
-            item_list = [item_list]
-
-        if not len(item_list) == nreg:
-            if len(item_list) == 1:
-                # Replicate single item list so it matches number of regions
-                item_list *= nreg
-            else:
-                raise Exception("Argument coord should be a list of lists")
-
-        if not np.all([isinstance(item, expected_type) for item in item_list]):
-            raise Exception("Argument of unexpected type included in list")
-
-        return item_list
-
-    coord = _match_to_regions(regions, coord, list)
-    radius = _match_to_regions(regions, radius, Number)
-    form = _match_to_regions(regions, form, str)
-    fading = _match_to_regions(regions, fading, Number)
-
-    if not np.all([form_item in ['cube', 'sphere', 'manual'] \
-                    for form_item in form]):
-        raise Exception("Unknown spatial method specified: {}".format(form))
-
-    if not np.all([len(item) == len(coord[0]) for item in coord]):
-        raise Exception("All coordinates must be of the same dimensions")
+    coord, radius, form, fading = _verify_spatial_params(regions, coord, \
+                                                    radius, form, fading)
 
     regions_out = []
     for region in range(regions):
