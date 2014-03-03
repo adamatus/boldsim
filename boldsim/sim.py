@@ -758,9 +758,9 @@ def simprepSpatial(regions=1, coord=None, radius=1, form='cube', fading=0):
 
     return regions_out
 
-def simTSfmri(design=None, base=10, SNR=2, noise='mixture', noise_dist='gaussian',
-              weights=None, ar_coef=0.2, freq_low=128, freq_heart=1.17,
-              freq_resp=0.2):
+def simTSfmri(design=None, base=10, SNR=2, noise='mixture',
+              noise_dist='gaussian', weights=None, ar_coef=0.2,
+              freq_low=128, freq_heart=1.17, freq_resp=0.2):
     """
     Generate a simulated fMRI timeseries
     """
