@@ -336,6 +336,96 @@ class TestSpecifyDesign(unittest.TestCase):
         self.assertTrue(np.all(g == np.round(d[0,50:80],decimals=5)))
         self.assertTrue(np.all(g == np.round(d[1,25:55],decimals=5)))
 
+class TestSpecifyRegion(unittest.TestCase):
+    """Unit tests for sim.specifyregion"""
+
+    def test_default_output_is_sane(self):
+        """Test specifyregion default output is sane [SMOKE]"""
+        region = sim.specifyregion()
+        self.assertTrue(isinstance(region, np.ndarray))
+        self.assertTrue(np.all(region.shape == (9,9)))
+
+    def test_dim_is_2d_or_3d(self):
+        """Test specifyregion dim is 2d or 3d"""
+        sim.specifyregion(dim=[32,32], coord=[1,1])
+        sim.specifyregion(dim=[64,64,32], coord=[1,1,1])
+        with self.assertRaises(Exception):
+            sim.specifyregion(dim=[32], coord=[1])
+        with self.assertRaises(Exception):
+            sim.specifyregion(dim=[32,32,32,32], coord=[1,1,1,1])
+
+    def test_mismatching_coords_and_dims_throws_exception(self):
+        """Test specifyregion throws exception on mismatching dims and coords"""
+        sim.specifyregion(dim=[64,64,32], coord=[[1,1,1],[2,2,2]])
+        with self.assertRaises(Exception):
+            sim.specifyregion(dim=[64,64,32], coord=[[1,1,1,1],[2,2,2,2]])
+
+    def test_manual_2d_returns_expected(self):
+        """Test specifyregion returns expected for 2d manual input"""
+        region = sim.specifyregion(dim=[3,3], coord=[[1,1],[2,0]],radius=0, form='manual')
+        self.assertTrue(np.all(region == np.asarray([[0,0,0],[0,1,0],[1,0,0]])))
+
+    def test_manual_3d_returns_expected(self):
+        """Test specifyregion returns expected for 3d manual input"""
+        region = sim.specifyregion(dim=[2,2,2], coord=[[0,1,1],[1,0,0]],radius=0, form='manual')
+        expected = np.asarray([[[0,0],[0,1]],
+                               [[1,0],[0,0]]])
+        self.assertTrue(np.all(region == expected))
+
+    def test_cube_2d_returns_expected(self):
+        """Test specifyregion returns expected for 2d cube input"""
+        region = sim.specifyregion(dim=[7,7], coord=[[1,1],[5,5]],radius=[1,2], form='cube')
+        expected = np.asarray([[1, 1, 1, 0, 0, 0, 0],
+                               [1, 1, 1, 0, 0, 0, 0],
+                               [1, 1, 1, 0, 0, 0, 0],
+                               [0, 0, 0, 1, 1, 1, 1],
+                               [0, 0, 0, 1, 1, 1, 1],
+                               [0, 0, 0, 1, 1, 1, 1],
+                               [0, 0, 0, 1, 1, 1, 1],
+                              ])
+        self.assertTrue(np.all(region == expected))
+
+    def test_sphere_2d_returns_expected(self):
+        """Test specifyregion returns expected for 2d cube input"""
+        region = sim.specifyregion(dim=[7,7], coord=[[1,1],[5,5]],radius=[1,2], form='sphere')
+        expected = np.asarray([[0, 1, 0, 0, 0, 0, 0],
+                               [1, 1, 1, 0, 0, 0, 0],
+                               [0, 1, 0, 0, 0, 0, 0],
+                               [0, 0, 0, 0, 0, 1, 0],
+                               [0, 0, 0, 0, 1, 1, 1],
+                               [0, 0, 0, 1, 1, 1, 1],
+                               [0, 0, 0, 0, 1, 1, 1],
+                              ])
+        self.assertTrue(np.all(region == expected))
+
+    def test_mixed_2d_returns_expected(self):
+        """Test specifyregion returns expected for 2d mixed input"""
+        region = sim.specifyregion(dim=[7,7], coord=[[1,1],[5,5],[6,0]],radius=[1,2,0],
+                                   form=['cube','sphere','manual'])
+        expected = np.asarray([[1, 1, 1, 0, 0, 0, 0],
+                               [1, 1, 1, 0, 0, 0, 0],
+                               [1, 1, 1, 0, 0, 0, 0],
+                               [0, 0, 0, 0, 0, 1, 0],
+                               [0, 0, 0, 0, 1, 1, 1],
+                               [0, 0, 0, 1, 1, 1, 1],
+                               [1, 0, 0, 0, 1, 1, 1],
+                              ])
+        self.assertTrue(np.all(region == expected))
+
+    def test_faded_2d_output_is_sane(self):
+        """Test specifyregion faded 2d output is sane [SMOKE]"""
+        region = sim.specifyregion(dim=[7,7], coord=[[1,1],[5,5]],radius=[1,2], fading=.5, form='cube')
+        self.assertTrue(isinstance(region, np.ndarray))
+        self.assertTrue(np.all(region.shape == (7,7)))
+
+    def test_faded_3d_output_is_sane(self):
+        """Test specifyregion faded 3d output is sane [SMOKE]"""
+        region = sim.specifyregion()
+        region = sim.specifyregion(dim=[7,7,7], coord=[[1,1,1],[5,5,5]],radius=[1,2], fading=.5, form='cube')
+        self.assertTrue(isinstance(region, np.ndarray))
+        self.assertTrue(np.all(region.shape == (7,7,7)))
+
+
 class TestSystemNoise(unittest.TestCase):
     """Unit tests for sim.systemnoise"""
 

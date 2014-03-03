@@ -256,6 +256,87 @@ def specifydesign(total_time=100, onsets=range(0, 99, 20),
 
     return design_out
 
+def specifyregion(coord=None, radius=1, form='cube', fading=0, dim=None):
+    """
+    Generate an image with activation regions for specified dimensions
+
+    Args:
+        coords (list/list of lists): List of coordinates specify center of
+            regions
+        radius (int/float/list): If form is 'cube' or 'sphere', the distance
+            between the center and edge. If form is 'manual', the number of
+            voxels in the region
+        form (string/list): Shape of regions: 'cube', 'sphere', 'manual'
+        fading (float): Value between 0 and 1 specifing decay rate of signal
+            from the center outward. 0 is none, 1 is most rapid
+        dim (list): XYZ Dimensions of output
+
+    Returns:
+        A ndarray with the activation image
+
+    Raises:
+        Exception
+    """
+
+    if dim is None:
+        dim = [9, 9]
+    mydim = _handle_dim(dim)
+
+    if not len(mydim) in [2, 3]:
+        raise Exception('specifyregion only supports 2d or 3d regions')
+
+    if coord is None:
+        coord = [[4, 4]]
+    regions = len(coord)
+
+    coord, radius, form, fading = _verify_spatial_params(regions, coord, \
+                                                    radius, form, fading)
+
+    if not np.all([len(item) == len(dim) for item in coord]):
+        raise Exception("Coordinates don't match image dimensions")
+
+    out = np.zeros(mydim)
+    for xyz, rad, shape, fade in zip(coord, radius, form, fading):
+        if len(mydim) == 2:
+            if shape == 'manual':
+                out[xyz[0], xyz[1]] = 1
+            else:
+                irange = np.arange(xyz[0]-rad, xyz[0]+1+rad)
+                for i in irange[(irange > -1) & (irange < mydim[0])]:
+                    jrange = np.arange(xyz[1]-rad, xyz[1]+1+rad)
+                    for j in jrange[(jrange > -1) & (jrange < mydim[1])]:
+                        if (shape == 'cube') or ((shape == 'sphere') and \
+                                (((i-xyz[0])**2 + (j-xyz[1])**2) <= (rad)**2)):
+                            if fade == 0:
+                                out[i, j] = 1
+                            else:
+                                out[i, j] = (2 * np.exp(-((i-xyz[0])**2 + \
+                                                          (j-xyz[1])**2) * \
+                                                          fade) + 2)/4
+        else: # 3d version
+            if shape == 'manual':
+                out[xyz[0], xyz[1], xyz[2]] = 1
+            else:
+                irange = np.arange(xyz[0]-rad, xyz[0]+1+rad)
+                for i in irange[(irange > -1) & (irange < mydim[0])]:
+                    jrange = np.arange(xyz[1]-rad, xyz[1]+1+rad)
+                    for j in jrange[(jrange > -1) & (jrange < mydim[1])]:
+                        krange = np.arange(xyz[2]-rad, xyz[2]+1+rad)
+                        for k in krange[(krange > -1) & (krange < mydim[2])]:
+                            if (shape == 'cube') or ((shape == 'sphere') and \
+                                    (((i-xyz[0])**2 + \
+                                      (j-xyz[1])**2 + \
+                                      (k-xyz[2])**2) <= (rad)**2)):
+                                if fade == 0:
+                                    out[i, j, k] = 1
+                                else:
+                                    out[i, j, k] = (3*np.exp(-((i-xyz[0])**2+ \
+                                                               (j-xyz[1])**2+ \
+                                                               (k-xyz[2])**2) \
+                                                               *fade)+3)/6
+
+    return out
+
 def gamma(x, fwhm=4):
     """
     Generate a gamma-shaped HRF
