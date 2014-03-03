@@ -538,7 +538,7 @@ def simprepTemporal(total_time=100, onsets=range(0, 99, 20),
                     durations=10, effect_sizes=1, TR=2, accuracy=1,
                     conv='none'):
     """"
-    Verify and package simulation parameters
+    Verify and package simulation temporal parameters
 
     Args:
         total_time (int/float): Total time of design (in seconds)
@@ -551,7 +551,7 @@ def simprepTemporal(total_time=100, onsets=range(0, 99, 20),
                        "double-gamma"
 
     Returns:
-        A ndarray with the stimulus timeseries
+        A dict with verified temporal parameters
 
     Raises:
         Exception
