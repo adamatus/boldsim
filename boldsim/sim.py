@@ -581,6 +581,86 @@ def simprepTemporal(total_time=100, onsets=range(0, 99, 20),
 
     return out
 
+def simprepSpatial(regions=1, coord=None, radius=1, form='cube', fading=0):
+    """"
+    Verify and package simulation spatial parameters
+
+    Args:
+        regions (int): Number of activated regions
+        coords (list/list of lists): List of coordinates specify center of
+            regions
+        radius (int/float/list): If form is 'cube' or 'sphere', the distance
+            between the center and edge. If form is 'manual', the number of
+            voxels in the region
+        form (string/list): Shape of regions: 'cube', 'sphere', 'manual'
+        fading (float): Value between 0 and 1 specifing decay rate of signal
+            from the center outward. 0 is none, 1 is most rapid
+
+    Returns:
+        A list of dicts with verified spatial parameters
+
+    Raises:
+        Exception
+    """
+
+    if coord is None:
+        coord = [0, 0]
+
+    if (not isinstance(regions, Number)) or (regions != int(regions)):
+        raise Exception("Argument regions should be an integer")
+    regions = int(regions)
+
+
+    if not isinstance(coord, list):
+        raise Exception("Argument coord should be a list of lists")
+
+    # If we got single list (rather than a nested list), go ahead and nest
+    if np.all([isinstance(item, Number) for item in coord]):
+        coord = [coord]
+
+    def _match_to_regions(nreg, item_list, expected_type):
+        """
+        Return properly validated and formatted list to match number of regions
+        """
+        if not isinstance(item_list, list):
+            item_list = [item_list]
+
+        if not len(item_list) == nreg:
+            if len(item_list) == 1:
+                # Replicate single item list so it matches number of regions
+                item_list *= nreg
+            else:
+                raise Exception("Argument coord should be a list of lists")
+
+        if not np.all([isinstance(item, expected_type) for item in item_list]):
+            raise Exception("Argument of unexpected type included in list")
+
+        return item_list
+
+    coord = _match_to_regions(regions, coord, list)
+    radius = _match_to_regions(regions, radius, Number)
+    form = _match_to_regions(regions, form, str)
+    fading = _match_to_regions(regions, fading, Number)
+
+    if not np.all([form_item in ['cube', 'sphere', 'manual'] \
+                    for form_item in form]):
+        raise Exception("Unknown spatial method specified: {}".format(form))
+
+    if not np.all([len(item) == len(coord[0]) for item in coord]):
+        raise Exception("All coordinates must be of the same dimensions")
+
+    regions_out = []
+    for region in range(regions):
+        out = dict()
+        out['name'] = 'Region {}'.format(region)
+        out['coord'] = coord[region]
+        out['radius'] = radius[region]
+        out['form'] = form[region]
+        out['fading'] = fading[region]
+        regions_out.append(out)
+
+    return regions_out
+
 def simTSfmri(design=None, base=10, SNR=2, noise='mixture', noise_dist='gaussian',
               weights=None, ar_coef=0.2, freq_low=128, freq_heart=1.17,
               freq_resp=0.2):

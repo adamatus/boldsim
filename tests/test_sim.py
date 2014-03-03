@@ -564,6 +564,91 @@ class TestSimPrepTemporal(unittest.TestCase):
         with self.assertRaises(Exception):
             design = sim.simprepTemporal(total_time=100.5, TR=2)
 
+class TestSimPrepSpatial(unittest.TestCase):
+    """Unit tests for sim.simprepTemporal"""
+
+    def test_smoke_output_is_list_of_dists(self):
+        """Test simprepSpatial output is list of dicts [SMOKE]"""
+        regions = sim.simprepSpatial()
+        self.assertTrue(isinstance(regions,list))
+        self.assertTrue(np.all([isinstance(region,dict) for region in regions]))
+
+    def test_regions_should_be_int(self):
+        """Test simprepSpatial regions arg should be int"""
+        regions = sim.simprepSpatial(regions=1)
+        regions = sim.simprepSpatial(regions=1.0)
+        with self.assertRaises(Exception):
+            regions = sim.simprepSpatial(regions=1.5)
+        with self.assertRaises(Exception):
+            regions = sim.simprepSpatial(regions=[10])
+
+    def test_bad_form_throws_exception(self):
+        """Test simprepSpatial throws exception on unknown form type"""
+        regions = sim.simprepSpatial(form='cube')
+        regions = sim.simprepSpatial(form='sphere')
+        regions = sim.simprepSpatial(form='manual')
+        with self.assertRaises(Exception):
+            regions = sim.simprepSpatial(form='bad')
+
+    def test_coords_should_be_list(self):
+        """Test simprepSpatial coords should be list"""
+        regions = sim.simprepSpatial(coord=[[1,2,3]])
+        with self.assertRaises(Exception):
+            regions = sim.simprepSpatial(coord=1)
+
+    def test_coords_throws_exception_if_dims_differ(self):
+        """Test simprepSpatial throws exception if dims differ"""
+        regions = sim.simprepSpatial(regions=2, coord=[[1,2,3],[4,5,6]])
+        with self.assertRaises(Exception):
+            regions = sim.simprepSpatial(regions=2, coord=[[1,2,3],[4,5]])
+
+    def test_throws_exception_if_regions_and_coords_differ(self):
+        """Test simprepSpatial throws exception if regions and coords differ"""
+        regions = sim.simprepSpatial(regions=2, coord=[[1,2,3],[4,5,6]])
+        with self.assertRaises(Exception):
+            regions = sim.simprepSpatial(regions=1, coord=[[1,2],[4,5]])
+
+    def test_throws_exception_on_args_of_wrong_type(self):
+        """Test simprepSpatial throws exception if args are of wrong type"""
+        with self.assertRaises(Exception):
+            regions = sim.simprepSpatial(regions=2, coord=[[1,2,3],1])
+        with self.assertRaises(Exception):
+            regions = sim.simprepSpatial(regions=1, radius = ['2'])
+        with self.assertRaises(Exception):
+            regions = sim.simprepSpatial(regions=1, form = ['2'])
+        with self.assertRaises(Exception):
+            regions = sim.simprepSpatial(regions=1, fading = ['2'])
+
+    def test_returns_expected_output_on_full_input(self):
+        """Test simprepSpatial returns expected output on full input"""
+        regions = sim.simprepSpatial(regions=2, coord=[[1,2,3],[4,5,6]],
+                                     radius=[3, 4], form=['cube','sphere'],
+                                     fading=[0, 1])
+        self.assertTrue(len(regions) == 2)
+        self.assertEqual(regions[0]['coord'],[1,2,3])
+        self.assertEqual(regions[1]['coord'],[4,5,6])
+        self.assertEqual(regions[0]['radius'],3)
+        self.assertEqual(regions[1]['radius'],4)
+        self.assertEqual(regions[0]['form'],'cube')
+        self.assertEqual(regions[1]['form'],'sphere')
+        self.assertEqual(regions[0]['fading'],0)
+        self.assertEqual(regions[1]['fading'],1)
+
+    def test_returns_expected_output_on_some_single_input(self):
+        """Test simprepSpatial returns expected output on some single input"""
+        regions = sim.simprepSpatial(regions=2, coord=[1,2,3],
+                                     radius=4, form=['cube','sphere'],
+                                     fading=[0])
+        self.assertTrue(len(regions) == 2)
+        self.assertEqual(regions[0]['coord'],[1,2,3])
+        self.assertEqual(regions[1]['coord'],[1,2,3])
+        self.assertEqual(regions[0]['radius'],4)
+        self.assertEqual(regions[1]['radius'],4)
+        self.assertEqual(regions[0]['form'],'cube')
+        self.assertEqual(regions[1]['form'],'sphere')
+        self.assertEqual(regions[0]['fading'],0)
+        self.assertEqual(regions[1]['fading'],0)
+
 class TestSimTSfMRI(unittest.TestCase):
     """Unit tests for sim.simTSfmri"""
 
