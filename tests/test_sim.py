@@ -660,8 +660,7 @@ class TestSimPrepSpatial(unittest.TestCase):
     def test_smoke_output_is_list_of_dists(self):
         """Test simprepSpatial output is list of dicts [SMOKE]"""
         regions = sim.simprepSpatial()
-        self.assertTrue(isinstance(regions,list))
-        self.assertTrue(np.all([isinstance(region,dict) for region in regions]))
+        self.assertTrue(isinstance(regions,dict))
 
     def test_throws_exception_on_bad_fade(self):
         """Test simprepSpatial throws exception on bad fade value"""
@@ -724,30 +723,28 @@ class TestSimPrepSpatial(unittest.TestCase):
         regions = sim.simprepSpatial(regions=2, coord=[[1,2,3],[4,5,6]],
                                      radius=[3, 4], form=['cube','sphere'],
                                      fading=[0, 1])
-        self.assertTrue(len(regions) == 2)
-        self.assertEqual(regions[0]['coord'],[1,2,3])
-        self.assertEqual(regions[1]['coord'],[4,5,6])
-        self.assertEqual(regions[0]['radius'],3)
-        self.assertEqual(regions[1]['radius'],4)
-        self.assertEqual(regions[0]['form'],'cube')
-        self.assertEqual(regions[1]['form'],'sphere')
-        self.assertEqual(regions[0]['fading'],0)
-        self.assertEqual(regions[1]['fading'],1)
+        self.assertEqual(regions['coord'][0],[1,2,3])
+        self.assertEqual(regions['coord'][1],[4,5,6])
+        self.assertEqual(regions['radius'][0],3)
+        self.assertEqual(regions['radius'][1],4)
+        self.assertEqual(regions['form'][0],'cube')
+        self.assertEqual(regions['form'][1],'sphere')
+        self.assertEqual(regions['fading'][0],0)
+        self.assertEqual(regions['fading'][1],1)
 
     def test_returns_expected_output_on_some_single_input(self):
         """Test simprepSpatial returns expected output on some single input"""
         regions = sim.simprepSpatial(regions=2, coord=[1,2,3],
                                      radius=4, form=['cube','sphere'],
                                      fading=[0])
-        self.assertTrue(len(regions) == 2)
-        self.assertEqual(regions[0]['coord'],[1,2,3])
-        self.assertEqual(regions[1]['coord'],[1,2,3])
-        self.assertEqual(regions[0]['radius'],4)
-        self.assertEqual(regions[1]['radius'],4)
-        self.assertEqual(regions[0]['form'],'cube')
-        self.assertEqual(regions[1]['form'],'sphere')
-        self.assertEqual(regions[0]['fading'],0)
-        self.assertEqual(regions[1]['fading'],0)
+        self.assertEqual(regions['coord'][0],[1,2,3])
+        self.assertEqual(regions['coord'][1],[1,2,3])
+        self.assertEqual(regions['radius'][0],4)
+        self.assertEqual(regions['radius'][1],4)
+        self.assertEqual(regions['form'][0],'cube')
+        self.assertEqual(regions['form'][1],'sphere')
+        self.assertEqual(regions['fading'][0],0)
+        self.assertEqual(regions['fading'][1],0)
 
 class TestSimTSfMRI(unittest.TestCase):
     """Unit tests for sim.simTSfmri"""
@@ -801,7 +798,7 @@ class TestSimTSfMRI(unittest.TestCase):
             sim.simTSfmri(design=self.design, noise='bad')
 
     def test_output_with_no_noise_one_cond_is_same_as_specifydesign(self):
-        """Test simTSfmri output is ndarray [SMOKE]"""
+        """Test simTSfmri output with no noise, one condition is same as specifydesign"""
         total_time=20
         onsets=[[1]]
         durations=[[2]]

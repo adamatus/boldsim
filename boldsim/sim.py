@@ -256,7 +256,8 @@ def specifydesign(total_time=100, onsets=range(0, 99, 20),
 
     return design_out
 
-def specifyregion(coord=None, radius=1, form='cube', fading=0, dim=None):
+def specifyregion(coord=None, radius=1, form='cube', fading=0, dim=None,
+                  verify_params=True):
     """
     Generate an image with activation regions for specified dimensions
 
@@ -289,8 +290,9 @@ def specifyregion(coord=None, radius=1, form='cube', fading=0, dim=None):
         coord = [[4, 4]]
     regions = len(coord)
 
-    coord, radius, form, fading = _verify_spatial_params(regions, coord, \
-                                                    radius, form, fading)
+    if verify_params:
+        coord, radius, form, fading = _verify_spatial_params(regions, coord, \
+                                                        radius, form, fading)
 
     if not np.all([len(item) == len(dim) for item in coord]):
         raise Exception("Coordinates don't match image dimensions")
@@ -731,7 +733,7 @@ def simprepSpatial(regions=1, coord=None, radius=1, form='cube', fading=0):
             from the center outward. 0 is none, 1 is most rapid
 
     Returns:
-        A list of dicts with verified spatial parameters
+        A dict with verified spatial parameters
 
     Raises:
         Exception
@@ -746,17 +748,14 @@ def simprepSpatial(regions=1, coord=None, radius=1, form='cube', fading=0):
     coord, radius, form, fading = _verify_spatial_params(regions, coord, \
                                                     radius, form, fading)
 
-    regions_out = []
-    for region in range(regions):
-        out = dict()
-        out['name'] = 'Region {}'.format(region)
-        out['coord'] = coord[region]
-        out['radius'] = radius[region]
-        out['form'] = form[region]
-        out['fading'] = fading[region]
-        regions_out.append(out)
+    out = dict()
+    out['regions'] = regions
+    out['coord'] = coord
+    out['radius'] = radius
+    out['form'] = form
+    out['fading'] = fading
 
-    return regions_out
+    return out
 
 def simTSfmri(design=None, base=10, SNR=2, noise='mixture',
               noise_dist='gaussian', weights=None, ar_coef=0.2,
