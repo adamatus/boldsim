@@ -104,11 +104,10 @@ def _slice_only_if_list(arg):
     """
     Return a copied slice if given a list, otherwise return item
     """
-    if isinstance(arg, list):
+    if _is_list_or_ndarray(arg):
         return arg[:]
     else:
         return arg
-
 
 def _match_to_onsets(onsets, arr_to_fix):
     """
@@ -153,6 +152,9 @@ def _match_to_onsets(onsets, arr_to_fix):
                 arr[cond] = [durs] * len(onsets[cond])
     return arr
 
+def _is_list_or_ndarray(arr):
+    return isinstance(arr, list) or isinstance(arr, np.ndarray)
+
 def _verify_design_params(onsets, durations, effect_sizes):
     """
     Return properly formatted copies of onsets, durations and effect_sizes
@@ -162,8 +164,8 @@ def _verify_design_params(onsets, durations, effect_sizes):
     effect_sizes_cp = _slice_only_if_list(effect_sizes)
 
     # Check to see how if we got a list of onset lists, or just one list
-    if isinstance(onsets_cp, list) and \
-       any(isinstance(x, list) for x in onsets_cp):
+    if _is_list_or_ndarray(onsets_cp) and \
+       any(_is_list_or_ndarray(x) for x in onsets_cp):
         # See if we have a list of lists, or just a list
         onsets_cp = [_to_ndarray(x) for x in onsets_cp]
     else:

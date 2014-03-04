@@ -101,6 +101,32 @@ class TestHelperVerifyDesignParams(unittest.TestCase):
         self.assertTrue(np.all(onsets[1] == [10, 10]))
         self.assertTrue(np.all(durations[1] == [2, 2]))
 
+
+    def test_handles_single_ndarry_onset(self):
+        """Test _verify_design_params handles single ndarray onsets"""
+        onsets=np.arange(1,200,40)
+        onsets, durations, effect_sizes = sim._verify_design_params(
+                                  onsets=onsets,
+                                  durations=[1],
+                                  effect_sizes=[1])
+        self.assert_all_lists(onsets,durations,effect_sizes)
+        self.assertTrue(np.all(onsets[0] == [1,41,81,121,161]))
+        self.assertTrue(np.all(durations[0] == [1, 1, 1, 1, 1]))
+
+    def test_handles_list_of_ndarry_onset(self):
+        """Test _verify_design_params handles single ndarray onsets"""
+        onsets=[np.arange(1,200,40),np.arange(15,200,40)]
+        print onsets
+        onsets, durations, effect_sizes = sim._verify_design_params(
+                                  onsets=onsets,
+                                  durations=[1,2],
+                                  effect_sizes=[1])
+        self.assert_all_lists(onsets,durations,effect_sizes)
+        self.assertTrue(np.all(onsets[0] == [1,41,81,121,161]))
+        self.assertTrue(np.all(durations[0] == [1, 1, 1, 1, 1]))
+        self.assertTrue(np.all(onsets[1] == [15, 55, 95, 135, 175]))
+        self.assertTrue(np.all(durations[1] == [2, 2, 2, 2, 2]))
+
     def test_with_complex_one_single_durations_as_num_is_ok_in_multiple_cond(self):
         """Test _verify_design_params handles complex one single durs as list with multiple conds"""
         onsets, durations, effect_sizes = sim._verify_design_params(
