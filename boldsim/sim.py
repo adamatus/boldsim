@@ -842,3 +842,164 @@ def simTSfmri(design=None, base=10, SNR=2, noise='mixture',
     noise_ts /= np.sqrt(np.sum(np.power(weights, 2)))
 
     return bold + noise_ts - np.mean(noise_ts)
+
+def simVOLfmri(designs=None, images=None, dim=None, base=10, SNR=2,
+              noise='mixture', temp_noise_dist='gaussian', weights=None,
+              ar_coef=0.2, freq_low=128, freq_heart=1.17, freq_resp=0.2,
+              spat_noise_method='corr', rho=0.7, FWHM=4, gamma_shape=6,
+              gamma_rate=1, nscan=100, TR=2):
+    """
+    Simulate a 2d+time or 3d+time fMRI dataset
+
+    Args:
+        design (dict/list of dicts): Designs as specified by simprepTemporal
+        image (dict/list of dicts): Activation images as specified by
+            simprepSpatial
+
+    Returns:
+        A ndarray with the simulated dataset
+
+    Raises:
+        Exception
+    """
+    if dim is None:
+        raise Exception('Must provide output dimensions')
+    mydim = _handle_dim(dim)
+    if not len(mydim) in [2, 3]:
+        raise Exception('simVOLfmri only supports 2d or 3d spatial dimensions')
+
+    # Check to see if we are generating a noise only dataset, if not, verify
+    # that designs and images are valid
+    if not ((designs is None) and (images is None)):
+        if designs is None:
+            raise Exception('Must provide at least one design from ' + \
+                            'simprepTemporal to simVOLfmri to go with images')
+
+        if images is None:
+            raise Exception('Must provide at least one activation image ' + \
+                            'from simprepSpatial to simVOLfmri to go ' + \
+                            'with designs')
+
+        # If we got single dicts, put them in lists
+        if isinstance(designs, dict):
+            designs = [designs]
+        if isinstance(images, dict):
+            images = [images]
+
+        # If we got a single of one, and multiple of the others, match them up
+        if (len(designs) == 1) and (len(images) > 1):
+            designs *= len(images)
+        elif (len(images) == 1) and (len(designs) > 1):
+            images *= len(designs)
+        elif len(designs) != len(images):
+            raise Exception('designs and images must be the same length!')
+
+        # Verify TRs are the same
+        trs = [x['TR'] for x in designs]
+        if not trs[1:] == trs[:-1]:
+            raise Exception('TRs for different designs must be the same!')
+
+        times = [x['total_time'] for x in designs]
+        if not times[1:] == times[:-1]:
+            times[0] = np.max(times)
+            warn('total_times different between designs, using ' + \
+                 'longest: {}'.format(times[0]))
+
+        total_time = times[0]
+        TR = trs[0]
+        nscan = total_time/TR
+
+    # Create an ndarray to hold the output bold signal
+    bold_all = np.zeros(mydim + [nscan])
+
+    # Loop through the design+image pairs and generate the bold signal x image
+    if not ((designs is None) and (images is None)):
+        for design, image in zip(designs, images):
+            d_mat = specifydesign(total_time=total_time,
+                                  onsets=design['onsets'],
+                                  durations=design['durations'],
+                                  effect_sizes=design['effect_sizes'], TR=TR,
+                                  accuracy=design['accuracy'],
+                                  conv=design['hrf'],
+                                  verify_params=False)
+            bold = np.apply_along_axis(sum, axis=0, arr=d_mat)
+
+            i_mat = specifyregion(coord=image['coord'], radius=image['radius'],
+                                  form=image['form'], fading=image['fading'],
+                                  dim=mydim, verify_params=False)
+
+            bold_all += np.outer(i_mat, bold).reshape(mydim + [nscan])
+
+        # Compute the sigma for desired SNR
+        sigma = np.mean(bold_all)/SNR
+
+        # Add in the baseline offset
+        bold_all += base
+    else:
+        # FIXME We aren't currently taking a baseline image, so we aren't
+        # handling it and the SNR computation may be wrong
+        d_mat = np.zeros((1, nscan))
+        sigma = base/SNR
+
+    # Setup weights based on the specific type of noise desired
+    if noise == 'none':
+        return bold_all
+    elif noise == 'white':
+        weights = [1, 0, 0, 0, 0, 0]
+    elif noise == 'temporal':
+        weights = [0, 1, 0, 0, 0, 0]
+    elif noise == 'low-freq':
+        weights = [0, 0, 1, 0, 0, 0]
+    elif noise == 'phys':
+        weights = [0, 0, 0, 1, 0, 0]
+    elif noise == 'task-related':
+        weights = [0, 0, 0, 0, 1, 0]
+    elif noise == 'spatial':
+        weights = [0, 0, 0, 0, 0, 1]
+    elif noise == 'mixture':
+        if weights is None:
+            weights = [0.3, 0.3, 0.01, 0.09, 0.15, 0.15]
+        if len(weights) != 6:
+            raise Exception('Weights vector should have 6 elements')
+        if np.sum(weights) != 1:
+            raise Exception('Weights vector should sum to 1')
+    else:
+        raise Exception('Unknown noise setting: {}'.format(noise))
+    weights = np.asarray(weights)
+
+    # Set all values to zero by default
+    noise_white = noise_temp = noise_low = noise_phys = noise_task = \
+            noise_spat = 0
+
+    if weights[0] != 0:
+        noise_white = system_noise(nscan=nscan, sigma=sigma,
+                                   noise_dist=temp_noise_dist, dim=mydim)
+    if weights[1] != 0:
+        noise_temp = temporalnoise(nscan=nscan, sigma=sigma,
+                                       ar_coef=ar_coef, dim=mydim)
+    if weights[2] != 0:
+        noise_low = lowfreqdrift(nscan=nscan, freq=freq_low,
+                                            TR=TR, dim=mydim)
+    if weights[3] != 0:
+        noise_phys = physnoise(nscan=nscan, sigma=sigma,
+                                   freq_heart=freq_heart,
+                                   freq_respiration=freq_resp, TR=TR, dim=mydim)
+    if weights[4] != 0:
+        noise_task = tasknoise(design=d_mat, sigma=sigma,
+                                   noise_dist=temp_noise_dist, dim=mydim)
+
+    if weights[5] != 0:
+        noise_spat = spatialnoise(nscan=nscan, method=spat_noise_method,
+                                  sigma=sigma, rho=rho, FWHM=FWHM,
+                                  gamma_shape=gamma_shape,
+                                  gamma_rate=gamma_rate, dim=mydim)
+
+    noise_all = weights[0] * noise_white + weights[1] * noise_temp + \
+                weights[2] * noise_low + weights[3] * noise_phys + \
+                weights[4] * noise_task + weights[5] * noise_spat
+
+    noise_all /= np.sqrt(np.sum(np.power(weights, 2)))
+
+    # Apply weights to noise types, sum and scale
+
+    return bold_all + noise_all - np.mean(noise_all)

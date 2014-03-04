@@ -831,3 +831,139 @@ class TestSimTSfMRI(unittest.TestCase):
                                      durations=durations,
                                      effect_sizes=effect_sizes, conv=conv, TR=2, accuracy=1)
         self.assertTrue(np.all(simts == designts.squeeze()))
+
+class TestSimVOLfMRI(unittest.TestCase):
+    """Unit tests for sim.simVOLfmri"""
+
+    def setUp(self):
+        self.design = sim.simprepTemporal(total_time=200,
+                                        onsets=[[1,41, 81, 121, 161],
+                                                [15, 55, 95, 135, 175]],
+                                        durations=[[20],[7]], TR=2,
+                                        effect_sizes=[3,10], conv='double-gamma')
+        self.image = sim.simprepSpatial(regions=3, coord=[[1,1],[5,5],[6,0]],radius=[1,2,0],
+                                   form=['cube','sphere','manual'], fading=[.5, 0, 0])
+
+    def test_smoke_output_is_ndarray(self):
+        """Test simVOLfmri output is ndarray [SMOKE]"""
+        sim_ds = sim.simVOLfmri(designs=[self.design], images=[self.image], dim=[7,7])
+        self.assertTrue(isinstance(sim_ds, np.ndarray))
+        self.assertTrue(sim_ds.shape == (7, 7, 100))
+
+    def test_dim_handling(self):
+        """Test simVOLfmri dim handling throws exceptions on bad input"""
+        with self.assertRaises(Exception):
+            sim_ds = sim.simVOLfmri(designs=[self.design], images=[self.image])
+        with self.assertRaises(Exception):
+            sim_ds = sim.simVOLfmri(designs=[self.design], images=[self.image], dim=[1,2,3,4])
+        with self.assertRaises(Exception):
+            sim_ds = sim.simVOLfmri(designs=[self.design], images=[self.image], dim=2)
+
+    def test_design_and_image_verification_missing_image(self):
+        """Test simVOLfmri throws exception with missing image"""
+        with self.assertRaises(Exception):
+            sim_ds = sim.simVOLfmri(designs=[self.design], dim=[7,7])
+
+    def test_design_and_image_verification_missing_design(self):
+        """Test simVOLfmri throws exception with missing design"""
+        with self.assertRaises(Exception):
+            sim_ds = sim.simVOLfmri(images=[self.image], dim=[7,7])
+
+    def test_design_and_image_verification_mismatching_design_image_lens(self):
+        """Test simVOLfmri throws exception with mismatching design and image lenghts"""
+        with self.assertRaises(Exception):
+            sim_ds = sim.simVOLfmri(designs=[self.design, self.design],
+                                    images=[self.image, self.image, self.image], dim=[7,7])
+
+    def test_design_and_image_verification_handles_dicts(self):
+        """Test simVOLfmri handles design and image and single dicts [SMOKE]"""
+        sim_ds = sim.simVOLfmri(designs=self.design, images=self.image, dim=[7,7])
+
+    def test_design_and_image_verification_handles_single_design(self):
+        """Test simVOLfmri handles single design and multiple images [SMOKE]"""
+        sim_ds = sim.simVOLfmri(designs=[self.design],
+                                images=[self.image, self.image, self.image], dim=[7,7])
+
+    def test_design_and_image_verification_handles_single_image(self):
+        """Test simVOLfmri handles multiple designs and single image [SMOKE]"""
+        sim_ds = sim.simVOLfmri(designs=[self.design, self.design, self.design],
+                                images=[self.image], dim=[7,7])
+
+    def test_design_and_image_verification_throws_exception_on_mismatched_trs(self):
+        """Test simVOLfmri throws exception on mismatched TRs"""
+        design2 = sim.simprepTemporal(total_time=200,
+                                        onsets=[[1,41, 81, 121, 161],
+                                                [15, 55, 95, 135, 175]],
+                                        durations=[[20],[7]], TR=1,
+                                        effect_sizes=[3,10], conv='double-gamma')
+        with self.assertRaises(Exception):
+            sim_ds = sim.simVOLfmri(designs=[self.design, self.design, design2],
+                                    images=[self.image, self.image, self.image], dim=[7,7])
+
+    def test_design_and_image_verification_warns_on_mismatched_times(self):
+        """Test simVOLfmri warns on mismatched total_times"""
+        design2 = sim.simprepTemporal(total_time=230,
+                                        onsets=[[1,41, 81, 121, 161],
+                                                [15, 55, 95, 135, 175]],
+                                        durations=[[20],[7]], TR=2,
+                                        effect_sizes=[3,10], conv='double-gamma')
+        with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter("always")
+            sim_ds = sim.simVOLfmri(designs=[self.design, self.design, design2],
+                                    images=[self.image, self.image, self.image], dim=[7,7])
+            print w
+            self.assertTrue(len(w) == 1)
+
+    def test_design_and_image_verification_returns_longest_on_mismatched_times(self):
+        """Test simVOLfmri returns longest on mismatched total_times"""
+        design2 = sim.simprepTemporal(total_time=230,
+                                        onsets=[[1,41, 81, 121, 161],
+                                                [15, 55, 95, 135, 175]],
+                                        durations=[[20],[7]], TR=2,
+                                        effect_sizes=[3,10], conv='double-gamma')
+        with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter("always")
+            sim_ds = sim.simVOLfmri(designs=[self.design, self.design, design2],
+                                    images=[self.image, self.image, self.image], dim=[7,7])
+            self.assertTrue(sim_ds.shape == (7,7,115))
+
+    def test_smoke_noise_output(self):
+        """Test simVOLfmri returns noise with no design and image [SMOKE]"""
+        sim_ds = sim.simVOLfmri(dim=[7,7], noise='white', nscan=100, TR=2)
+        self.assertTrue(sim_ds.shape == (7,7,100))
+
+    def test_mixture_weight_handling(self):
+        """Test simVOLfmri throws exceptions on bad weights"""
+        with self.assertRaises(Exception):
+            sim_ds = sim.simVOLfmri(designs=[self.design], images=[self.image], dim=[7,7],
+                                    noise='mixture', weights=[1, 1, 1])
+        with self.assertRaises(Exception):
+            sim_ds = sim.simVOLfmri(designs=[self.design], images=[self.image], dim=[7,7],
+                                    noise='mixture', weights=[1, 1, 1, 1, 1, 1])
+
+    def test_bad_noise_type(self):
+        """Test simVOLfmri throws exceptions on bad noise type"""
+        with self.assertRaises(Exception):
+            sim_ds = sim.simVOLfmri(designs=[self.design], images=[self.image], dim=[7,7],
+                                    noise='bad', weights=[1, 1, 1])
+
+
+    def test_smoke_all_noise_types_work(self):
+        """Test simVOLfmri all noise types work [SMOKE]"""
+        sim_ds = sim.simVOLfmri(designs=[self.design], images=[self.image], dim=[7, 7],noise='none')
+        self.assertTrue(isinstance(sim_ds, np.ndarray))
+        sim_ds = sim.simVOLfmri(designs=[self.design], images=[self.image], dim=[7, 7],noise='white')
+        self.assertTrue(isinstance(sim_ds, np.ndarray))
+        sim_ds = sim.simVOLfmri(designs=[self.design], images=[self.image], dim=[7, 7],noise='temporal')
+        self.assertTrue(isinstance(sim_ds, np.ndarray))
+        sim_ds = sim.simVOLfmri(designs=[self.design], images=[self.image], dim=[7, 7],noise='low-freq')
+        self.assertTrue(isinstance(sim_ds, np.ndarray))
+        sim_ds = sim.simVOLfmri(designs=[self.design], images=[self.image], dim=[7, 7],noise='phys')
+        self.assertTrue(isinstance(sim_ds, np.ndarray))
+        sim_ds = sim.simVOLfmri(designs=[self.design], images=[self.image], dim=[7, 7],noise='task-related')
+        self.assertTrue(isinstance(sim_ds, np.ndarray))
+        sim_ds = sim.simVOLfmri(designs=[self.design], images=[self.image], dim=[7, 7],noise='spatial')
+        self.assertTrue(isinstance(sim_ds, np.ndarray))
+        sim_ds = sim.simVOLfmri(designs=[self.design], images=[self.image], dim=[7, 7],noise='mixture')
+        self.assertTrue(isinstance(sim_ds, np.ndarray))
+
