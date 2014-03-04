@@ -35,6 +35,18 @@ def _handle_dim(dim):
         raise Exception('Invalid dim provided: {}'.format(dim))
     return mydim
 
+def _handle_nscan(nscan):
+    """
+    Handle number of scans, convert to int if necessary
+    """
+    if not isinstance(nscan, Number):
+        raise Exception("Number of scans needs to be a positive integer")
+
+    if not isinstance(nscan, int) and not nscan.is_integer():
+        raise Exception("Number of scans needs to be a positive integer")
+
+    return int(nscan)
+
 def stimfunction(total_time=100, onsets=range(0, 99, 20),
                  durations=10, effect_sizes=1, accuracy=1, verify_params=True):
     """
@@ -552,6 +564,7 @@ def spatialnoise(nscan=200, method='corr', noise_dist='gaussian', sigma=1, \
         Exception
     """
     # Handle the dim parameter
+    nscan = _handle_nscan(nscan)
     mydim = _handle_dim(dim)
 
     if len(mydim) == 1:

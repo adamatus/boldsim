@@ -4,6 +4,23 @@ import numpy as np
 
 from boldsim import sim
 
+class TestHelpers(unittest.TestCase):
+    """Unit tests for sim helper functions"""
+
+    def test_handle_nscan_returns_ints(self):
+        """Test _handle_nscan returns int with int or float input"""
+        self.assertEqual(10, sim._handle_nscan(10))
+        self.assertEqual(12, sim._handle_nscan(12.0))
+
+    def test_handle_nscan_throws_exceptions_on_bad_input(self):
+        """Test _handle_nscan throws exception on bad input"""
+        with self.assertRaises(Exception):
+            sim._handle_nscan(10.5)
+        with self.assertRaises(Exception):
+            sim._handle_nscan([10])
+        with self.assertRaises(Exception):
+            sim._handle_nscan('10')
+
 class TestHelperVerifyDesignParams(unittest.TestCase):
     """Unit tests for sim._verify_design_params"""
 
@@ -750,7 +767,7 @@ class TestSimTSfMRI(unittest.TestCase):
     """Unit tests for sim.simTSfmri"""
 
     def setUp(self):
-        self.design = design = sim.simprepTemporal(total_time=200,
+        self.design = sim.simprepTemporal(total_time=200,
                                         onsets=[[1,41, 81, 121, 161],
                                                 [15, 55, 95, 135, 175]],
                                         durations=[[20],[7]],
