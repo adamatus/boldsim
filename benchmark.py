@@ -3,6 +3,23 @@
 import numpy as np
 import boldsim.sim as sim
 import timeit
+import argparse
+
+parser = argparse.ArgumentParser(description='Run BOLDsim benchmarks.',
+                                 epilog='By default no benchmarks will be run, so make sure to specify one!')
+parser.add_argument('-a', '--all', action='store_true', help='Run the full suite of benchmarks')
+parser.add_argument('-v','--sim-vol', action='store_true', help='Run the simVOL benchmarks')
+parser.add_argument('-t','--sim-ts', action='store_true', help='Run the simTS benchmarks')
+parser.add_argument('-n', '--noise', action='store_true', help='Run the full suite of noise benchmarks')
+parser.add_argument('--stimfunc', action='store_true', help='Run the stimfunction benchmarks')
+parser.add_argument('--specdesign', action='store_true', help='Run the specifydesign benchmarks')
+parser.add_argument('--specregion', action='store_true', help='Run the specifyregion benchmarks')
+parser.add_argument('--systemnoise', action='store_true', help='Run the systemnoise benchmarks')
+parser.add_argument('--lowfreq', action='store_true', help='Run the lowfreqnoise benchmarks')
+parser.add_argument('--phys', action='store_true', help='Run the physnoise benchmarks')
+parser.add_argument('--task-related', action='store_true', help='Run the task-related noise benchmarks')
+parser.add_argument('--temporal', action='store_true', help='Run the temporally correlated noise benchmarks')
+parser.add_argument('--spatial', action='store_true', help='Run the spatially correlated noise benchmarks')
 
 def run_test(title, test, setup, repeats=10):
     print '{:>60}'.format(title+':'),
@@ -221,7 +238,7 @@ d = sim.specifydesign(total_time, onsets=onsets, durations=dur, accuracy=acc,
             """)
 
 def benchmark_temporalnoise():
-    print_header('Physiological noise benchmarks')
+    print_header('Temporally correlated noise benchmarks')
 
     run_test('Single Voxel, 200 TRs, AR(1)',
             'noise = sim.temporalnoise(dim=(1,),nscan=200, ar_coef=[.2])',
@@ -372,18 +389,39 @@ sim_ds = sim.simVOLfmri(designs=design,
 """.format(noise_type),
                 setup=setup, repeats=really_slow)
 
-def run_all():
-    benchmark_stimfunction()
-    benchmark_specifydesign()
-    benchmark_specifyregion()
-    benchmark_systemnoise()
-    benchmark_lowfreqnoise()
-    benchmark_physnoise()
-    benchmark_tasknoise()
-    benchmark_temporalnoise()
-    benchmark_spatialnoise()
-    benchmark_simTS()
-    benchmark_simVOL()
+def run_benchmarks(args):
+    if args['stimfunc']:
+        benchmark_stimfunction()
+    if args['specdesign']:
+        benchmark_specifydesign()
+    if args['specregion']:
+        benchmark_specifyregion()
+    if args['systemnoise']:
+        benchmark_systemnoise()
+    if args['lowfreq']:
+        benchmark_lowfreqnoise()
+    if args['phys']:
+        benchmark_physnoise()
+    if args['task_related']:
+        benchmark_tasknoise()
+    if args['temporal']:
+        benchmark_temporalnoise()
+    if args['spatial']:
+        benchmark_spatialnoise()
+    if args['sim_ts']:
+        benchmark_simTS()
+    if args['sim_vol']:
+        benchmark_simVOL()
 
 if __name__ == "__main__":
-    run_all()
+    args = parser.parse_args()
+    args = vars(args)
+    if args['all']:
+        for key in args.keys():
+            args[key] = True
+    if args['noise']:
+        for key in ['systemnoise','lowfreq','phys','task_related',
+                'temporal','spatial']:
+            args[key] = True
+    run_benchmarks(args)
+
