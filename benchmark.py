@@ -63,7 +63,7 @@ def benchmark_specifydesign():
     print_header('Specifydesign benchmarks')
 
     setup_short_few = setup + """
-total_time = 100
+total_time = 400
 onsets = [[0, 30, 60], [25, 75]]
 dur = [[10],[3]]
 effect_sizes = [3, 10]
@@ -71,7 +71,7 @@ acc = .5
     """
 
     setup_long_few = setup + """
-total_time = 1000
+total_time = 4000
 onsets = [[0, 30, 60], [550, 650]]
 dur = [[10],[3]]
 effect_sizes = [3, 10]
@@ -79,15 +79,15 @@ acc = .5
     """
 
     setup_long_many = setup + """
-total_time = 1000
-onsets = [[0, 30, 60], [550, 650]]
+total_time = 4000
+onsets = [np.arange(1,979,20), np.arange(2,979,19)]
 dur = [[10],[3]]
 effect_sizes = [3, 10]
 acc = .5
     """
 
     setup_long_many_conds = setup + """
-total_time = 1000
+total_time = 4000
 onsets = [np.arange(1,979,20), np.arange(2,979,19),
           np.arange(3,979,18), np.arange(4,979,17),
           np.arange(5,979,16), np.arange(6,979,15),
@@ -156,7 +156,7 @@ def benchmark_systemnoise():
                 """s = sim.system_noise(nscan=200, sigma=1.5,
                                         dim=(1,), noise_dist='{}')""".format(noise_type),
                 setup=setup, repeats=normal)
-        run_test('Single voxel, 2000 TRs, {}'.format(noise_type),
+        run_test('Single voxel, 200000 TRs, {}'.format(noise_type),
                 """s = sim.system_noise(nscan=200000, sigma=1.5,
                                         dim=(1,), noise_dist='{}')""".format(noise_type),
                 setup=setup, repeats=normal)
@@ -304,7 +304,7 @@ design = sim.simprepTemporal(total_time=400,onsets=[[1,41, 81, 121, 161],
                              durations=[[20],[7]],
                              effect_sizes=[1], conv='double-gamma')
 
-ts = sim.simTSfmri(design, noise='none')""".format(noise_type),
+ts = sim.simTSfmri(design, noise='{}')""".format(noise_type),
                 setup=setup, repeats=normal)
 
     for noise_type in ['none','white','temporal','low-freq','phys','task-related','mixture']:
@@ -315,7 +315,7 @@ design = sim.simprepTemporal(total_time=4000,onsets=[[1,41, 81, 121, 161],
                              durations=[[20],[7]],
                              effect_sizes=[1], conv='double-gamma')
 
-ts = sim.simTSfmri(design, noise='none')""".format(noise_type),
+ts = sim.simTSfmri(design, noise='{}')""".format(noise_type),
                 setup=setup, repeats=normal)
 
 def benchmark_simVOL():
