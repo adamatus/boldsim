@@ -1,5 +1,7 @@
-library(neuRosim)
+#!/usr/bin/env Rscript
+suppressPackageStartupMessages(library(neuRosim))
 library(rbenchmark)
+library(optparse)
 
 print_test <- function(title, results, repeats=10) {
     cat(sprintf('%60s:',title))
@@ -8,7 +10,7 @@ print_test <- function(title, results, repeats=10) {
 }
 
 print_header <- function(title) {
-    cat(title,'\n')
+    cat('\n',title,'\n')
     cat(sprintf('%60s %9s %9s','','mean','reps'),'\n')
 
 }
@@ -252,7 +254,7 @@ benchmark_temporalnoise <- function() {
 }
 
 benchmark_spatialnoise<- function() {
-    print_header('Temporally correlated noise benchmarks')
+    print_header('Spatial noise benchmarks')
 
     b <- benchmark(replications=normal,
                    spatialnoise(dim=c(10,10),nscan=1, rho=.7, sigma=1.5))
@@ -417,14 +419,65 @@ benchmark_simVOL<- function() {
     print_test(paste('Whole slice [64x64x32], 200 TRs,',noise),b,really_slow)
 }
 
-benchmark_stimfunction()
-benchmark_specifydesign()
-benchmark_specifyregion()
-benchmark_systemnoise()
-benchmark_lowfreqnoise()
-benchmark_physnoise()
-benchmark_tasknoise()
-benchmark_temporalnoise()
-benchmark_spatialnoise()
-benchmark_simTS()
-benchmark_simVOL()
+option_list <- list(
+    make_option(c('-a','--all'), action="store_true", default=F, help="Run the full suite of benchmarks"),
+    make_option(c('-v','--sim-vol'), action="store_true", default=F, help="Run the simVOL benchmarks"),
+    make_option(c('-t','--sim-ts'), action="store_true", default=F, help="Run the simTS benchmarks"),
+    make_option(c('-n','--noise'), action="store_true", default=F, help="Run the noise benchmarks"),
+    make_option('--stimfunc', action="store_true", default=F, help="Run the stimfunction benchmarks"),
+    make_option('--specdesign', action="store_true", default=F, help="Run the specifydesign benchmarks"),
+    make_option('--specregion', action="store_true", default=F, help="Run the specifyregion benchmarks"),
+    make_option('--systemnoise', action="store_true", default=F, help="Run the systemnoise benchmarks"),
+    make_option('--lowfreq', action="store_true", default=F, help="Run the lowfreqnoise benchmarks"),
+    make_option('--phys', action="store_true", default=F, help="Run the physnoise benchmarks"),
+    make_option('--task-related', action="store_true", default=F, help="Run the task-related noise benchmarks"),
+    make_option('--temporal', action="store_true", default=F, help="Run the temporally correlated noise benchmarks"),
+    make_option('--spatial', action="store_true", default=F, help="Run the spatially correlated noise benchmarks")
+)
+
+opt <- parse_args(OptionParser(option_list=option_list, description="Run BOLDsim benchmarks.",
+                  epilogue="Be default no benchmarks will be run, so make sure to specify one!"))
+
+if (opt$all) {
+    for (name in names(opt)) {
+        opt[[name]] = T
+    }
+}
+if (opt$noise) {
+    for (name in c('systemnoise','lowfreq','phys','task-related','temporal','spatial')) {
+        opt[[name]] = T
+    }
+}
+
+if (opt$stimfunc)
+    benchmark_stimfunction()
+
+if (opt$specdesign)
+    benchmark_specifydesign()
+
+if (opt$specregion)
+    benchmark_specifyregion()
+
+if (opt$systemnoise)
+    benchmark_systemnoise()
+
+if (opt$lowfreq)
+    benchmark_lowfreqnoise()
+
+if (opt$phys)
+    benchmark_physnoise()
+
+if (opt$`task-related`)
+    benchmark_tasknoise()
+
+if (opt$temporal)
+    benchmark_temporalnoise()
+
+if (opt$spatial)
+    benchmark_spatialnoise()
+
+if (opt$`sim-ts`)
+    benchmark_simTS()
+
+if (opt$`sim-vol`)
+    benchmark_simVOL()
