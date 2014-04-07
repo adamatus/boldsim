@@ -437,11 +437,18 @@ def lowfreqdrift(nscan=200, freq=128.0, TR=2, dim=None):
         for basis in np.arange(1, num_basis_funcs):
             cosine_set[:, basis] = np.sqrt(2.0/nscans) * 10 * \
                                    np.cos(np.pi * (2.0 * timepoint+1) * \
-                                          (basis)/(2.0*nscans))
+                                          (basis)/(2.0*nscans) + \
+                                          np.random.rand(1)*3*np.pi/2)
 
         return cosine_set
 
     drift_base = spm_drift(nscan, num_basis_funcs)
+
+    # Randomly weight each basis set
+    weights = np.random.rand(num_basis_funcs,1)
+    weights = weights/np.sum(weights)
+    drift_base = (drift_base.T * weights).T
+
     drift_image = np.ones(mydim)
     drift_out = np.outer(drift_image, np.sum(drift_base, axis=1))
 
