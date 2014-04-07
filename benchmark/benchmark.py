@@ -175,9 +175,12 @@ def benchmark_lowfreqnoise():
     run_test('Single voxel, 2000 TRs',
             'noise = sim.lowfreqdrift(nscan=2000, freq=128.0, dim=(1,))',
             setup=setup, repeats=normal)
+    run_test('Whole slice [64x64], 200 TRs',
+            'noise = sim.lowfreqdrift(nscan=200, freq=128.0, dim=(64,64))',
+            setup=setup, repeats=really_slow)
     run_test('Wholebrain [64x64x32], 200 TRs',
             'noise = sim.lowfreqdrift(nscan=200, freq=128.0, dim=(64,64,32))',
-            setup=setup, repeats=slow)
+            setup=setup, repeats=really_slow)
 
 def benchmark_physnoise():
     print_header('Physiological noise benchmarks')

@@ -401,7 +401,7 @@ def system_noise(nscan=200, noise_dist='gaussian', sigma=1, dim=None):
         raise Exception('Unknown noise distribution provided: {}'.format(
                                                                   noise_dist))
 
-def lowfreqdrift(nscan=200, freq=128.0, TR=2, dim=None):
+def lowfreqdrift(nscan=200, freq=128.0, TR=2, dim=None, random_phase=1, random_weights=1):
     """
     Generate low frequency drift noise
 
@@ -434,25 +434,32 @@ def lowfreqdrift(nscan=200, freq=128.0, TR=2, dim=None):
         cosine_set = np.zeros((nscans, nbasis))
 
         cosine_set[:, 0] = 1.0/np.sqrt(200)
-        for basis in np.arange(1, num_basis_funcs):
+        for basis in np.arange(1, nbasis):
+            if random_phase == 1:
+                phase = np.random.rand(1)*3*np.pi/2
+            else:
+                phase = 0
+
             cosine_set[:, basis] = np.cos(np.pi * (2.0 * timepoint+1) * \
                                           (basis)/(2.0*nscans) + \
-                                          np.random.rand(1)*3*np.pi/2)
+                                          phase)
 
-        return cosine_set
+        # Randomly weight each basis set
+        if random_weights == 1:
+            weights = np.random.rand(nbasis,1)
+        else:
+            weights = np.ones((nbasis,1))
+
+        weights = weights/np.sum(weights)
+        return (cosine_set.T * weights).T
 
     drift_base = spm_drift(nscan, num_basis_funcs)
-
-    # Randomly weight each basis set
-    weights = np.random.rand(num_basis_funcs,1)
-    weights = weights/np.sum(weights)
-    drift_base = (drift_base.T * weights).T
-
-    drift_image = np.ones(mydim)
-    drift_out = np.outer(drift_image, np.sum(drift_base, axis=1))
+    drift_out = np.ones((np.prod(mydim),nscan))
+    for i in range(np.prod(mydim)):
+        drift_out[i,:] = np.sum(spm_drift(nscan, num_basis_funcs),
+                                  axis=1)
 
     mydim.append(nscan)
-
     return drift_out.reshape(mydim)
 
 def physnoise(nscan=200, sigma=1, freq_heart=1.17, freq_respiration=0.2, \

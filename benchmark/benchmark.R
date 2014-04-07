@@ -165,6 +165,10 @@ benchmark_lowfreqnoise <- function() {
     print_test('Single voxel, 2000 TRs',b,normal)
 
     b <- benchmark(replications=normal,
+                   lowfreqdrift(dim=c(64,64),nscan=200, freq=128.0, TR=2))
+    print_test('Whole slice [64x64], 200 TRs',b,normal)
+
+    b <- benchmark(replications=normal,
                    lowfreqdrift(dim=c(64,64,32),nscan=200, freq=128.0, TR=2))
     print_test('Wholebrain [64x64x32], 200 TRs',b,normal)
 }
