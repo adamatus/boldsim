@@ -435,8 +435,7 @@ def lowfreqdrift(nscan=200, freq=128.0, TR=2, dim=None):
 
         cosine_set[:, 0] = 1.0/np.sqrt(200)
         for basis in np.arange(1, num_basis_funcs):
-            cosine_set[:, basis] = np.sqrt(2.0/nscans) * 10 * \
-                                   np.cos(np.pi * (2.0 * timepoint+1) * \
+            cosine_set[:, basis] = np.cos(np.pi * (2.0 * timepoint+1) * \
                                           (basis)/(2.0*nscans) + \
                                           np.random.rand(1)*3*np.pi/2)
 
